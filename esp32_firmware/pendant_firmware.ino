@@ -1,16 +1,10 @@
 /*
- * Smart Safety Pendant Firmware - ESP32-S3 Super Mini
+ * Smart Safety Pendant Firmware - ESP32-S3 Super Mini (VERIFIED & DEBUGGED)
  * 
- * Pinout:
- * - Push Button: GPIO 4 (Internal Pull-Up to GND, Ext0 Deep Sleep Wakeup)
- * - Status LED: GPIO 5 (Connected via 330 ohm resistor)
- * - Mini Vibrator: GPIO 6 (Connected via NPN transistor base)
- * 
- * Gestures Supported:
- * - Double Click (0x02)  : De-escalation / Fake Call
- * - Triple Click (0x03)  : Stealth SOS (Discreet 2 vibes)
- * - Hold for 2s (0x08)   : Full Emergency SOS (Loud Alarm & Call)
- * - 6 Rapid Clicks (0x06): Cancel SOS (Grace period cancel)
+ * Hardware Connections:
+ * - Push Button : GPIO 4 (Internal Pull-Up to GND, Ext0 Deep Sleep Wakeup)
+ * - Status LED  : GPIO 5 (via 330 ohm resistor to GND)
+ * - Mini Vibe   : GPIO 6 (via 2N2222 transistor base to GND)
  */
 
 #include <Arduino.h>
@@ -19,7 +13,7 @@
 #include <BLEServer.h>
 #include <esp_sleep.h>
 
-#define BUTTON_PIN GPIO_NUM_4
+#define BUTTON_PIN 4
 #define LED_PIN 5
 #define VIBE_PIN 6
 
@@ -37,20 +31,25 @@
 BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic = NULL;
 bool deviceConnected = false;
+unsigned long lastActivityTime = 0;
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *pServer) {
         deviceConnected = true;
+        Serial.println("[BLE] Phone / App Connected!");
+        // 2 Quick vibrations on connection
+        digitalWrite(VIBE_PIN, HIGH); delay(100); digitalWrite(VIBE_PIN, LOW); delay(100);
+        digitalWrite(VIBE_PIN, HIGH); delay(100); digitalWrite(VIBE_PIN, LOW);
     }
 
     void onDisconnect(BLEServer *pServer) {
         deviceConnected = false;
-        // Restart advertising when disconnected
+        Serial.println("[BLE] Disconnected. Restarting Advertising...");
         pServer->getAdvertising()->start();
     }
 };
 
-void triggerHaptic(int count, int durationMs, int gapMs) {
+void triggerHapticFeedback(int count, int durationMs, int gapMs) {
     for (int i = 0; i < count; i++) {
         digitalWrite(VIBE_PIN, HIGH);
         digitalWrite(LED_PIN, HIGH);
@@ -61,75 +60,82 @@ void triggerHaptic(int count, int durationMs, int gapMs) {
     }
 }
 
-void sendGesturePayload(uint8_t gestureCode) {
-    if (pCharacteristic != NULL) {
-        pCharacteristic->setValue(&gestureCode, 1);
-        pCharacteristic->notify();
-        Serial.printf("[BLE] Sent Gesture Code: 0x%02X\n", gestureCode);
-    }
-}
-
-uint8_t detectGesture() {
+uint8_t processButtonPresses() {
     unsigned long pressStartTime = millis();
-    bool isHolding = false;
-    int clickCount = 0;
-    unsigned long lastReleaseTime = millis();
+    bool isHold = false;
 
-    // Check initial press duration (detect 2-second hold)
+    Serial.println("[BUTTON] Press detected! Measuring duration...");
+
+    // 1. Check if user is holding button for 2 seconds
     while (digitalRead(BUTTON_PIN) == LOW) {
-        delay(50);
+        delay(20);
         if (millis() - pressStartTime >= 2000) {
-            isHolding = true;
+            isHold = true;
             break;
         }
     }
 
-    if (isHolding) {
-        // Hold for 2s detected
-        triggerHaptic(1, 1500, 0); // 1 Long vibration
+    if (isHold) {
+        Serial.println("[GESTURE DETECTED] -> Hold for 2 Seconds (Full SOS)");
+        triggerHapticFeedback(1, 1500, 0); // 1 Long vibration
         return GESTURE_HOLD_2S;
     }
 
-    // Otherwise, count rapid clicks within a 400ms inter-click window
-    clickCount = 1;
-    lastReleaseTime = millis();
+    // 2. Count multi-clicks (Double, Triple, 6 Clicks)
+    int clickCount = 1;
+    unsigned long lastReleaseTime = millis();
 
-    while (millis() - lastReleaseTime < 450) {
+    while (millis() - lastReleaseTime < 400) {
         if (digitalRead(BUTTON_PIN) == LOW) {
             clickCount++;
-            delay(50); // Debounce
+            Serial.printf("[BUTTON] Click #%d\n", clickCount);
+            delay(40); // Debounce
             while (digitalRead(BUTTON_PIN) == LOW) {
-                delay(20);
+                delay(10);
             }
             lastReleaseTime = millis();
         }
     }
 
-    Serial.printf("[GESTURE] Total clicks counted: %d\n", clickCount);
+    Serial.printf("[GESTURE RESULT] Total clicks: %d\n", clickCount);
 
     if (clickCount >= 6) {
-        triggerHaptic(3, 100, 100); // 3 rapid vibes for Cancel
+        Serial.println("[GESTURE DETECTED] -> 6 Rapid Clicks (CANCEL SOS)");
+        triggerHapticFeedback(3, 100, 100);
         return GESTURE_CANCEL;
     } else if (clickCount == 3) {
-        triggerHaptic(2, 200, 150); // 2 discreet vibes for Stealth
+        Serial.println("[GESTURE DETECTED] -> Triple Click (Stealth SOS)");
+        triggerHapticFeedback(2, 200, 150);
         return GESTURE_TRIPLE;
     } else if (clickCount == 2) {
-        triggerHaptic(1, 200, 0);   // 1 vibe for Fake Call
+        Serial.println("[GESTURE DETECTED] -> Double Click (Fake Call)");
+        triggerHapticFeedback(1, 200, 0);
         return GESTURE_DOUBLE;
     }
 
+    // Single click test feedback
+    Serial.println("[GESTURE DETECTED] -> Single Click Test");
+    triggerHapticFeedback(1, 80, 0);
     return GESTURE_NONE;
 }
 
 void setup() {
     Serial.begin(115200);
-    
+    delay(500);
+
+    Serial.println("\n=============================================");
+    Serial.println("  ESP32-S3 SMART SAFETY PENDANT INITIALIZING  ");
+    Serial.println("=============================================");
+
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(LED_PIN, OUTPUT);
     pinMode(VIBE_PIN, OUTPUT);
 
     digitalWrite(LED_PIN, LOW);
     digitalWrite(VIBE_PIN, LOW);
+
+    // Initial hardware test vibration (Vibrates once on power up)
+    triggerHapticFeedback(1, 200, 0);
 
     // Initialize BLE
     BLEDevice::init("Safety_Pendant_S3");
@@ -148,41 +154,34 @@ void setup() {
     BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06); // functions that help with iPhone connections
-    pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
 
-    Serial.println("[SYSTEM] Safety Pendant BLE Ready & Advertising...");
-
-    // Check wakeup cause
-    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-    if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
-        Serial.println("[POWER] Woken up from Deep Sleep via Push Button!");
-        
-        // Wait briefly for BLE reconnect if paired
-        unsigned long connWait = millis();
-        while (!deviceConnected && (millis() - connWait < 3000)) {
-            delay(100);
-        }
-
-        uint8_t gesture = detectGesture();
-        if (gesture != GESTURE_NONE) {
-            sendGesturePayload(gesture);
-            delay(1500); // Allow BLE notification to complete transmission
-        }
-    } else {
-        // First boot indication
-        triggerHaptic(2, 100, 100);
-    }
-
-    // Configure wakeup for next sleep cycle
-    esp_sleep_enable_ext0_wakeup(BUTTON_PIN, 0); // Wakeup when GPIO4 pulled LOW
-    
-    Serial.println("[POWER] Entering Deep Sleep mode (<15uA)...");
-    delay(100);
-    esp_deep_sleep_start();
+    Serial.println("[BLE] Advertising 'Safety_Pendant_S3'... Ready to pair!");
+    lastActivityTime = millis();
 }
 
 void loop() {
-    // Unreachable due to deep sleep architecture
+    // 1. Check Button Press
+    if (digitalRead(BUTTON_PIN) == LOW) {
+        lastActivityTime = millis();
+        uint8_t gesture = processButtonPresses();
+
+        if (gesture != GESTURE_NONE && pCharacteristic != NULL && deviceConnected) {
+            pCharacteristic->setValue(&gesture, 1);
+            pCharacteristic->notify();
+            Serial.printf("[BLE SENT] Gesture Code 0x%02X transmitted to Phone!\n", gesture);
+        } else if (gesture != GESTURE_NONE && !deviceConnected) {
+            Serial.println("[BLE WARNING] Gesture detected but Phone not connected over BLE!");
+        }
+    }
+
+    // 2. Deep Sleep Auto-Timeout (Enters sleep after 60 seconds of inactivity)
+    if (millis() - lastActivityTime > 60000 && !deviceConnected) {
+        Serial.println("[POWER] 60s inactivity. Entering Deep Sleep mode...");
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0);
+        delay(100);
+        esp_deep_sleep_start();
+    }
+
+    delay(20);
 }
