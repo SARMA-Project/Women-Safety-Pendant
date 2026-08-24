@@ -95,10 +95,17 @@ class BleService : Service() {
                 }
             }
 
+            @Suppress("DEPRECATION")
             override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
                 val value = characteristic?.value?.get(0)?.toInt() ?: 0
                 Log.d(TAG, "Received BLE Gesture Payload: 0x%02X".format(value))
                 handleGesture(value)
+            }
+
+            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                val gestureCode = if (value.isNotEmpty()) value[0].toInt() else 0
+                Log.d(TAG, "Received BLE Gesture Payload (API33+): 0x%02X".format(gestureCode))
+                handleGesture(gestureCode)
             }
         })
     }
@@ -201,14 +208,18 @@ class BleService : Service() {
         conn.outputStream.write(jsonInput.toByteArray())
 
         val response = conn.inputStream.bufferedReader().readText()
-        // Extract generated session UUID from JSON response
         val sessionId = response.substringAfter("\"id\":\"").substringBefore("\"")
         return sessionId
     }
 
+    @Suppress("DEPRECATION")
     private fun recordAndUpload10sAudio(sessionId: String): String? {
         val audioFile = File(cacheDir, "ambient_snippet.m4a")
-        val recorder = MediaRecorder().apply {
+        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(this)
+        } else {
+            MediaRecorder()
+        }.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -222,7 +233,6 @@ class BleService : Service() {
         recorder.stop()
         recorder.release()
 
-        // Upload to Supabase Storage Bucket 'audio-snippets'
         val uploadUrl = URL("$SUPABASE_URL/storage/v1/object/audio-snippets/$sessionId.m4a")
         val conn = uploadUrl.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
@@ -252,9 +262,14 @@ class BleService : Service() {
         conn.responseCode
     }
 
+    @Suppress("DEPRECATION")
     private fun sendSms(phoneNumber: String, message: String) {
         try {
-            val smsManager = SmsManager.getDefault()
+            val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                getSystemService(SmsManager::class.java)
+            } else {
+                SmsManager.getDefault()
+            }
             smsManager.sendTextMessage(phoneNumber, null, message, null, null)
             Log.d(TAG, "Emergency SMS sent to $phoneNumber")
         } catch (e: Exception) {
@@ -262,6 +277,7 @@ class BleService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun vibrateFeedback(times: Int) {
         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
