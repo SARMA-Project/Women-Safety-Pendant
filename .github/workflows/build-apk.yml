@@ -24,12 +24,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Android APK with Gradle Wrapper
+      - name: Build Android APK
         working-directory: ./mobile_app
         run: |
           gradle wrapper --gradle-version 8.4
           chmod +x gradlew
-          ./gradlew assembleDebug -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true --stacktrace --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
