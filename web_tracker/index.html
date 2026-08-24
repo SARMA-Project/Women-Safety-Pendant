@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Emergency Tracker | Smart Safety Pendant</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="pulse-dot"></span>
+            <h1>LIVE EMERGENCY TRACKER</h1>
+        </div>
+        <div id="status-badge" class="badge badge-warning">CONNECTING...</div>
+    </header>
+
+    <main class="container">
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Information Overlay Panel -->
+        <section class="info-card">
+            <div class="user-details">
+                <h2 id="user-name">Emergency User</h2>
+                <p id="time-stamp">Last Updated: Just now</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="label">Battery</span>
+                    <span id="stat-battery" class="value">--%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Speed</span>
+                    <span id="stat-speed" class="value">0 km/h</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">GPS Accuracy</span>
+                    <span id="stat-accuracy" class="value">-- m</span>
+                </div>
+            </div>
+
+            <!-- Audio Snippet Player Section -->
+            <div id="audio-container" class="audio-section hidden">
+                <h3>🎙️ 10-Second Ambient Audio Snippet</h3>
+                <audio id="audio-player" controls preload="metadata"></audio>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="action-row">
+                <a id="btn-call" href="tel:112" class="btn btn-danger">📞 Call Police (112)</a>
+                <button id="btn-recenter" class="btn btn-secondary">🎯 Center Map</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
