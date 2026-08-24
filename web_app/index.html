@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Safety Pendant Companion PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Main Dashboard UI -->
+    <div id="main-ui" class="app-container">
+        <header class="header">
+            <div class="brand">
+                <span class="icon">🛡️</span>
+                <h2>Safety Pendant Companion</h2>
+            </div>
+            <div id="ble-status" class="status-badge badge-offline">DISCONNECTED</div>
+        </header>
+
+        <section class="card">
+            <h3>1. Bluetooth Pendant Connection</h3>
+            <p class="subtitle">Pair with your ESP32-S3 Super Mini Pendant</p>
+            <button id="btn-connect-ble" class="btn btn-primary">🔗 Connect ESP32-S3 Pendant</button>
+        </section>
+
+        <section class="card">
+            <h3>2. Emergency Contact Setup</h3>
+            <p class="subtitle">Phone number to receive SMS & Call alerts</p>
+            <div class="input-group">
+                <label for="contact-phone">Contact Phone Number:</label>
+                <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1234567890">
+            </div>
+            <button id="btn-save-contact" class="btn btn-secondary">💾 Save Contact</button>
+        </section>
+
+        <section class="card">
+            <h3>3. Gestures Reference</h3>
+            <div class="gesture-list">
+                <div class="gesture-item">
+                    <span class="badge-blue">Double Click</span>
+                    <span>Fake Call ("Dad Calling")</span>
+                </div>
+                <div class="gesture-item">
+                    <span class="badge-orange">Triple Click</span>
+                    <span>Stealth SOS (Silent + Audio + GPS)</span>
+                </div>
+                <div class="gesture-item">
+                    <span class="badge-red">Hold 2 Seconds</span>
+                    <span>Full SOS (Alarm + Call + Audio + GPS)</span>
+                </div>
+                <div class="gesture-item">
+                    <span class="badge-green">6 Rapid Clicks</span>
+                    <span>Cancel SOS (Within 10s Grace Period)</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Fullscreen Realistic Fake Call Overlay -->
+    <div id="fake-call-overlay" class="fake-call-container hidden">
+        <div class="caller-info">
+            <div class="caller-avatar">👤</div>
+            <h1 class="caller-name">Dad</h1>
+            <p id="call-status-text" class="call-subtext">Mobile Incoming Call...</p>
+        </div>
+
+        <div class="call-actions">
+            <button id="btn-decline-call" class="btn-call btn-decline">
+                <span class="call-icon">📞</span>
+                <span>Decline</span>
+            </button>
+            <button id="btn-accept-call" class="btn-call btn-accept">
+                <span class="call-icon">📞</span>
+                <span>Accept</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 10-Second Grace Window Cancel Bar -->
+    <div id="grace-bar" class="grace-notification hidden">
+        <div class="grace-content">
+            <span class="grace-spinner">⏳</span>
+            <div>
+                <h4>SOS TRIGGERED!</h4>
+                <p>Press button 6 times on pendant to cancel (<span id="grace-seconds">10</span>s)</p>
+            </div>
+        </div>
+        <button id="btn-cancel-grace" class="btn btn-danger-small">CANCEL SOS NOW</button>
+    </div>
+
+    <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
