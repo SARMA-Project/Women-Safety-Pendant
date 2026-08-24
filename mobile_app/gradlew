@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+# System-independent Gradle wrapper script for Unix/Linux/macOS
+# Generated for Android Safety Pendant
+
+# Resolve links - $0 may be a softlink
+PRG="$0"
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`/"$link"
+    fi
+done
+PRGDIR=`dirname "$PRG"`
+APP_FILENAME=`basename "$PRG"`
+
+# Set HUB_HOME/GRADLE_HOME
+DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+
+# Find JAVA_HOME
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    fi
+    if [ -x "$JAVA_HOME/bin/java" ] ; then
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+fi
+if [ -z "$JAVACMD" ] ; then
+    JAVACMD="java"
+fi
+
+exec "$JAVACMD" $DEFAULT_JVM_OPTS -jar "$PRGDIR/gradle/wrapper/gradle-wrapper.jar" "$@"
