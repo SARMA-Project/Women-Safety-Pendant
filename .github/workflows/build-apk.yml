@@ -20,15 +20,16 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Grant Execute Permission for Gradle Wrapper
-        run: chmod +x mobile_app/gradlew || true
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Android APK with Gradle
+      - name: Generate Gradle Wrapper & Build APK
         run: |
           cd mobile_app
-          gradle assembleDebug --no-daemon
+          gradle wrapper
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
