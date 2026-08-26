@@ -1,11 +1,12 @@
 /*
  * ===================================================================
- *  AURA SMART SAFETY PENDANT - LED & VIBRATION MOTOR HARDWARE FIRMWARE
+ *  AURA ALWAYS-ON SAFETY PENDANT FIRMWARE (NO BUZZER / ALWAYS ON)
  * ===================================================================
  *  Board          : ESP32-S3 Super Mini
+ *  Power          : Always-ON (3.7V LiPo Battery + TP4056 Charger)
  *  Push Button    : GPIO 3 (Internal Pullup to GND)
  *  Status LED     : GPIO 5 (via 330 ohm resistor)
- *  Vibration Motor: GPIO 6 (via 2N2222 transistor & 1k resistor)
+ *  Vibration Motor: GPIO 6 (via 2N2222 NPN transistor & 1k resistor)
  *  Bluetooth Name : Safety_Pendant_S3 (ALWAYS ON 24/7)
  * ===================================================================
  */
@@ -15,8 +16,8 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 
-#define BUTTON_PIN 3  // Push Button Pin (Verified!)
-#define LED_PIN    5  // Status LED Pin
+#define BUTTON_PIN 3  // Verified Push Button Pin
+#define LED_PIN    5  // Status LED Pin (No buzzer!)
 #define VIBE_PIN   6  // Haptic Vibration Motor Pin
 
 // Custom BLE UUIDs
@@ -124,7 +125,7 @@ void setup() {
     }
 
     Serial.println("\n=======================================================");
-    Serial.println("  AURA PENDANT - LED & VIBRATION MOTOR FIRMWARE RUNNING");
+    Serial.println("  AURA ALWAYS-ON SAFETY PENDANT FIRMWARE RUNNING       ");
     Serial.println("=======================================================");
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -134,10 +135,10 @@ void setup() {
     digitalWrite(LED_PIN, LOW);
     digitalWrite(VIBE_PIN, LOW);
 
-    // Initial Power-On Vibration Test (1 Short Buzz)
+    // Initial Always-ON Startup Buzz (1 Short Vibration)
     triggerHapticFeedback(1, 200, 0);
 
-    // Initialize BLE Server
+    // Initialize BLE Server (ALWAYS ON 24/7)
     BLEDevice::init("Safety_Pendant_S3");
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
