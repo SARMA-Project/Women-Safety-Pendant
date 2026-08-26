@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA Safety – User Dashboard</title>
-    <meta name="theme-color" content="#090D16">
+    <title>Aura Safety – User Dashboard</title>
+    <meta name="theme-color" content="#FFF0F7">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="user.css">
 </head>
 <body>
-
     <div class="app-wrapper">
 
         <!-- Header -->
         <header class="app-header">
             <div class="brand-logo">
-                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <img src="assets/logo.png" class="header-logo" alt="Aura Safety">
                 <div class="brand-text">
-                    <h1>AURA SAFETY</h1>
+                    <h1>Aura Safety</h1>
                     <span class="sub-brand">WOMAN USER DASHBOARD</span>
                 </div>
             </div>
@@ -30,7 +29,7 @@
         <main>
 
             <!-- BLE Status Banner -->
-            <div class="banner banner-rose">
+            <div class="banner banner-pink">
                 <span><i class="fa-solid fa-user-shield"></i> MY SAFETY PENDANT</span>
                 <span id="ble-status-pill" class="status-pill status-disconnected">
                     <span class="status-dot"></span>
@@ -41,7 +40,7 @@
             <!-- Bluetooth Pairing Card -->
             <div class="glass-card highlight-card">
                 <div class="card-title-group">
-                    <i class="fa-brands fa-bluetooth-b icon-blue fa-2x"></i>
+                    <div class="icon-wrap icon-wrap-blue"><i class="fa-brands fa-bluetooth-b"></i></div>
                     <div>
                         <h2>Connect Safety Pendant</h2>
                         <p>Pair your ESP32-S3 pendant over Bluetooth</p>
@@ -49,19 +48,17 @@
                 </div>
                 <div id="ble-info" class="ble-info hidden">
                     <div class="ble-device-row">
-                        <i class="fa-solid fa-gem icon-blue"></i>
+                        <i class="fa-solid fa-gem" style="color:#E91E8C"></i>
                         <div>
                             <div id="ble-device-name" class="ble-device-name">Safety_Pendant_S3</div>
                             <div class="ble-device-sub">Bluetooth Low Energy · GATT Connected</div>
                         </div>
                         <div class="ble-signal-bars">
-                            <span class="bar b1"></span>
-                            <span class="bar b2"></span>
-                            <span class="bar b3"></span>
+                            <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
                         </div>
                     </div>
                 </div>
-                <button id="btn-connect-ble" class="btn btn-primary-glow">
+                <button id="btn-connect-ble" class="btn btn-primary">
                     <i class="fa-solid fa-wifi"></i> PAIR ESP32-S3 PENDANT
                 </button>
             </div>
@@ -69,26 +66,26 @@
             <!-- Gesture Reference Card -->
             <div class="glass-card">
                 <div class="card-title-group">
-                    <i class="fa-solid fa-hand-pointer icon-amber fa-xl"></i>
+                    <div class="icon-wrap icon-wrap-purple"><i class="fa-solid fa-hand-pointer"></i></div>
                     <div>
                         <h2>Button Gesture Guide</h2>
-                        <p>How your 2-pin push button works</p>
+                        <p>How your push button gestures work</p>
                     </div>
                 </div>
                 <div class="gesture-list">
                     <div class="gesture-row">
-                        <div class="gesture-icon g-blue"><i class="fa-solid fa-phone-volume"></i></div>
+                        <div class="gesture-icon g-pink"><i class="fa-solid fa-phone-volume"></i></div>
                         <div class="gesture-desc">
                             <div class="g-label">Double Click (2 Presses)</div>
                             <div class="g-sub">Shows "Dad Calling" incoming call screen</div>
                         </div>
-                        <span class="g-badge badge-blue">FAKE CALL</span>
+                        <span class="g-badge badge-pink">FAKE CALL</span>
                     </div>
                     <div class="gesture-row">
                         <div class="gesture-icon g-red"><i class="fa-solid fa-triangle-exclamation"></i></div>
                         <div class="gesture-desc">
                             <div class="g-label">Hold 2 Seconds</div>
-                            <div class="g-sub">Instant emergency SOS – auto call + live GPS</div>
+                            <div class="g-sub">Instant SOS – auto call + live GPS</div>
                         </div>
                         <span class="g-badge badge-red">SOS</span>
                     </div>
@@ -98,10 +95,10 @@
             <!-- Emergency Contact Card -->
             <div class="glass-card">
                 <div class="card-title-group">
-                    <i class="fa-solid fa-address-book icon-emerald fa-xl"></i>
+                    <div class="icon-wrap icon-wrap-green"><i class="fa-solid fa-address-book"></i></div>
                     <div>
                         <h2>Emergency Contact</h2>
-                        <p>Auto-called & SMS alerted on SOS</p>
+                        <p>Auto-called &amp; SMS alerted on SOS</p>
                     </div>
                 </div>
                 <div class="input-form">
@@ -109,7 +106,7 @@
                         <i class="fa-solid fa-phone input-icon"></i>
                         <input type="tel" id="contact-phone" value="+1234567890" placeholder="+91 98765 43210">
                     </div>
-                    <button id="btn-save-contact" class="btn btn-glass">
+                    <button id="btn-save-contact" class="btn btn-outline">
                         <i class="fa-solid fa-floppy-disk"></i> Save Contact
                     </button>
                 </div>
@@ -118,67 +115,116 @@
         </main>
     </div>
 
-    <!-- Google Dialer Style Incoming Call UI -->
+    <!-- ============================================================
+         GOOGLE DIALER STYLE CALL SCREEN
+         ============================================================ -->
     <div id="fake-call-overlay" class="call-screen hidden">
 
-        <!-- Blurred background -->
-        <div class="call-bg"></div>
+        <!-- INCOMING CALL STATE -->
+        <div id="call-incoming-state" class="call-state">
+            <div class="call-top-bar">
+                <span id="call-clock" class="call-clock-text"></span>
+            </div>
 
-        <div class="call-body">
-
-            <!-- Top: Time -->
-            <div class="call-time" id="call-clock"></div>
-
-            <!-- Caller Info -->
-            <div class="call-caller-info">
-                <div class="call-avatar">
+            <div class="call-caller-section">
+                <div class="call-avatar-wrap">
                     <div class="call-avatar-inner">D</div>
                     <div class="call-avatar-ring ring1"></div>
                     <div class="call-avatar-ring ring2"></div>
                 </div>
                 <h2 class="call-name">Dad</h2>
-                <p class="call-number" id="call-contact-number">+91 98765 43210</p>
-                <p class="call-label" id="call-status-label">Incoming call</p>
+                <p class="call-number-label" id="call-contact-number">+91 98765 43210</p>
+                <p class="call-status-label">Incoming call</p>
             </div>
 
-            <!-- Quick Actions (mute, speaker icons like real dialer) -->
-            <div class="call-quick-actions">
-                <div class="quick-action">
-                    <div class="qa-icon"><i class="fa-solid fa-bell-slash"></i></div>
+            <!-- Quick actions like real dialer -->
+            <div class="call-quick-row">
+                <div class="call-quick-item">
+                    <div class="call-quick-icon"><i class="fa-solid fa-bell-slash"></i></div>
                     <span>Mute</span>
                 </div>
-                <div class="quick-action">
-                    <div class="qa-icon"><i class="fa-solid fa-message"></i></div>
+                <div class="call-quick-item">
+                    <div class="call-quick-icon"><i class="fa-solid fa-message"></i></div>
                     <span>Message</span>
                 </div>
-                <div class="quick-action">
-                    <div class="qa-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div class="call-quick-item">
+                    <div class="call-quick-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
                     <span>Remind me</span>
                 </div>
             </div>
 
-            <!-- Accept / Decline Slide Buttons -->
-            <div class="call-action-row">
+            <!-- Accept / Decline -->
+            <div class="call-answer-row">
                 <div class="call-btn-group">
-                    <button id="btn-decline-call" class="call-btn-circle btn-decline">
+                    <button id="btn-decline-call" class="call-circle-btn btn-decline">
                         <i class="fa-solid fa-phone-slash"></i>
                     </button>
                     <span class="call-btn-label">Decline</span>
                 </div>
-
                 <div class="call-btn-group">
-                    <button id="btn-accept-call" class="call-btn-circle btn-accept">
+                    <button id="btn-accept-call" class="call-circle-btn btn-accept">
                         <i class="fa-solid fa-phone"></i>
                     </button>
                     <span class="call-btn-label">Accept</span>
                 </div>
             </div>
+        </div>
 
+        <!-- IN-CALL ACTIVE STATE (after accepting) -->
+        <div id="call-active-state" class="call-state hidden">
+            <div class="call-top-bar">
+                <span class="call-active-name">Dad</span>
+                <span id="call-timer-display" class="call-timer">00:00</span>
+            </div>
+
+            <div class="call-active-avatar-wrap">
+                <div class="call-active-avatar">D</div>
+                <div class="call-active-number" id="call-active-number">+91 98765 43210</div>
+            </div>
+
+            <!-- In-call 3x3 grid controls (matching your screenshot) -->
+            <div class="incall-grid">
+                <div class="incall-btn">
+                    <div class="incall-icon"><i class="fa-solid fa-circle-dot"></i></div>
+                    <span>Record</span>
+                </div>
+                <div class="incall-btn">
+                    <div class="incall-icon"><i class="fa-solid fa-pause"></i></div>
+                    <span>Hold</span>
+                </div>
+                <div class="incall-btn">
+                    <div class="incall-icon"><i class="fa-solid fa-plus"></i></div>
+                    <span>Add call</span>
+                </div>
+                <div class="incall-btn" id="btn-toggle-mute">
+                    <div class="incall-icon"><i class="fa-solid fa-microphone-slash"></i></div>
+                    <span>Mute</span>
+                </div>
+                <div class="incall-btn">
+                    <div class="incall-icon"><i class="fa-solid fa-video"></i></div>
+                    <span>Video call</span>
+                </div>
+                <div class="incall-btn">
+                    <div class="incall-icon" style="font-size:.85rem"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <span>Summarise</span>
+                </div>
+                <div class="incall-btn" id="btn-toggle-speaker">
+                    <div class="incall-icon"><i class="fa-solid fa-volume-high"></i></div>
+                    <span>Speaker</span>
+                </div>
+                <div class="incall-btn end-call-btn" id="btn-end-call">
+                    <div class="incall-icon incall-end"><i class="fa-solid fa-phone-slash"></i></div>
+                    <span>End</span>
+                </div>
+                <div class="incall-btn">
+                    <div class="incall-icon"><i class="fa-solid fa-table-cells"></i></div>
+                    <span>Dial pad</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
-
     <script src="user.js"></script>
 </body>
 </html>

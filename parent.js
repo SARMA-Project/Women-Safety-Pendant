@@ -1,9 +1,10 @@
 // ============================================================
-// AURA SAFETY – PARENT TRACKER ENGINE
+// AURA SAFETY – PARENT TRACKER ENGINE (LIGHT MODE)
 // ============================================================
 
 let map = null;
 let userMarker = null;
+let accuracyCircle = null;
 let lastLat = null, lastLng = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,13 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-recenter').addEventListener('click', recenterMap);
 });
 
-// ─── Map ─────────────────────────────────────────────────────
+// ─── Map (Light Theme Tile Layer) ────────────────────────────
 function initMap() {
     map = L.map('map', { zoomControl: false, attributionControl: false })
-              .setView([20.5937, 78.9629], 5);
+           .setView([20.5937, 78.9629], 5);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
+    // Light, modern Positron / OSM style tiles
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd'
     }).addTo(map);
 
     L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -44,8 +47,8 @@ function updateMapPin(lat, lng) {
     const icon = L.divIcon({
         className: '',
         html: '<div class="custom-sos-pin"></div>',
-        iconSize: [22, 22],
-        iconAnchor: [11, 11]
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
 
     if (userMarker) {
@@ -55,7 +58,18 @@ function updateMapPin(lat, lng) {
     }
 
     const accuracy = parseInt(document.getElementById('d-accuracy').textContent) || 100;
-    L.circle([lat, lng], { radius: accuracy, color: '#f43f5e', fillOpacity: .1, weight: 1 }).addTo(map);
+    if (accuracyCircle) {
+        accuracyCircle.setLatLng([lat, lng]);
+        accuracyCircle.setRadius(accuracy);
+    } else {
+        accuracyCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#E91E8C',
+            fillColor: '#F472B6',
+            fillOpacity: 0.15,
+            weight: 2
+        }).addTo(map);
+    }
 
     map.setView([lat, lng], 16, { animate: true });
 }
@@ -67,8 +81,9 @@ function recenterMap() {
 // ─── SOS Event Parser ────────────────────────────────────────
 function parseSOSEvent(raw) {
     try {
+        if (!raw) return;
         const data = JSON.parse(raw);
-        const { lat, lng, accuracy, speed, timestamp, status } = data;
+        const { lat, lng, accuracy, speed, timestamp } = data;
 
         // Show SOS Banner
         document.getElementById('sos-banner').classList.remove('hidden');
@@ -76,7 +91,7 @@ function parseSOSEvent(raw) {
         document.getElementById('sos-banner-time').textContent = t.toLocaleTimeString();
 
         // Update telemetry
-        document.getElementById('d-status').textContent = '🚨 SOS';
+        document.getElementById('d-status').textContent = '🚨 SOS ACTIVE';
         document.getElementById('d-status').className = 'detail-val text-red';
         document.getElementById('d-speed').textContent = (speed * 3.6).toFixed(1) + ' km/h';
         document.getElementById('d-accuracy').textContent = Math.round(accuracy) + ' m';

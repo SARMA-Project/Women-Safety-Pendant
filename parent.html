@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA Safety – Parent Tracker</title>
-    <meta name="theme-color" content="#090D16">
+    <title>Aura Safety – Parent Tracker</title>
+    <meta name="theme-color" content="#FFF0F7">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -18,9 +18,9 @@
         <!-- Header -->
         <header class="app-header">
             <div class="brand-logo">
-                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <img src="assets/logo.png" class="header-logo" alt="Aura Safety">
                 <div class="brand-text">
-                    <h1>AURA SAFETY</h1>
+                    <h1>Aura Safety</h1>
                     <span class="sub-brand">PARENT TRACKING DASHBOARD</span>
                 </div>
             </div>
@@ -39,15 +39,15 @@
         </div>
 
         <!-- Status Row -->
-        <div class="banner banner-blue">
-            <span><i class="fa-solid fa-satellite-dish"></i> LIVE MONITORING</span>
+        <div class="banner banner-purple">
+            <span><i class="fa-solid fa-satellite-dish"></i> LIVE GUARDIAN MONITORING</span>
             <span id="tracker-status" class="status-pill status-watching">
                 <span class="status-dot"></span>
                 <span id="tracker-status-text">WATCHING</span>
             </span>
         </div>
 
-        <!-- Live Map -->
+        <!-- Live Light Map -->
         <div class="glass-card map-card">
             <div id="map"></div>
             <button id="btn-recenter" class="recenter-btn" title="Center Map">
@@ -58,7 +58,7 @@
         <!-- Incident Details Grid -->
         <div class="glass-card">
             <div class="card-title-group">
-                <i class="fa-solid fa-chart-line icon-blue fa-xl"></i>
+                <div class="icon-wrap icon-wrap-purple"><i class="fa-solid fa-chart-line"></i></div>
                 <div>
                     <h2>Live Telemetry</h2>
                     <p id="last-updated-text">Waiting for SOS event...</p>
@@ -68,23 +68,23 @@
             <div class="details-grid">
                 <div class="detail-box">
                     <span class="detail-label"><i class="fa-solid fa-circle-dot"></i> Status</span>
-                    <span id="d-status" class="detail-val text-emerald">NORMAL</span>
+                    <span id="d-status" class="detail-val text-green">NORMAL</span>
                 </div>
                 <div class="detail-box">
                     <span class="detail-label"><i class="fa-solid fa-battery-three-quarters"></i> Battery</span>
-                    <span id="d-battery" class="detail-val text-emerald">95%</span>
+                    <span id="d-battery" class="detail-val text-green">95%</span>
                 </div>
                 <div class="detail-box">
                     <span class="detail-label"><i class="fa-solid fa-gauge-high"></i> Speed</span>
-                    <span id="d-speed" class="detail-val text-blue">-- km/h</span>
+                    <span id="d-speed" class="detail-val text-purple">-- km/h</span>
                 </div>
                 <div class="detail-box">
                     <span class="detail-label"><i class="fa-solid fa-bullseye"></i> GPS Accuracy</span>
                     <span id="d-accuracy" class="detail-val text-amber">-- m</span>
                 </div>
                 <div class="detail-box full-width">
-                    <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Coordinates</span>
-                    <span id="d-coords" class="detail-val text-blue" style="font-size:.8rem;">--</span>
+                    <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Exact Coordinates</span>
+                    <span id="d-coords" class="detail-val text-purple" style="font-size:.85rem;">Waiting for signal...</span>
                 </div>
             </div>
         </div>
@@ -92,7 +92,7 @@
         <!-- 10-Second Audio Recording Player -->
         <div class="glass-card">
             <div class="card-title-group">
-                <i class="fa-solid fa-microphone-lines icon-rose fa-xl"></i>
+                <div class="icon-wrap icon-wrap-pink"><i class="fa-solid fa-microphone-lines"></i></div>
                 <div>
                     <h2>10-Second Ambient Recording</h2>
                     <p id="audio-timestamp-text">Captured during SOS activation</p>
@@ -100,7 +100,7 @@
             </div>
             <div id="audio-placeholder" class="audio-placeholder">
                 <i class="fa-solid fa-waveform-lines fa-2x" style="color:var(--muted)"></i>
-                <p>Audio will appear when SOS is triggered</p>
+                <p>Audio recording will appear here when SOS is triggered</p>
             </div>
             <div id="audio-container" class="hidden">
                 <audio id="audio-player" controls preload="metadata" style="width:100%;"></audio>
@@ -110,7 +110,7 @@
         <!-- Action Buttons -->
         <div class="action-row">
             <a href="tel:112" class="btn btn-danger"><i class="fa-solid fa-phone"></i> Call Police (112)</a>
-            <a id="btn-open-maps" href="#" target="_blank" class="btn btn-glass"><i class="fa-solid fa-map"></i> Open Maps</a>
+            <a id="btn-open-maps" href="#" target="_blank" class="btn btn-outline"><i class="fa-solid fa-map-location-dot"></i> Open Maps</a>
         </div>
 
     </div>
