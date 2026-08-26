@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aura Safety – User Dashboard</title>
     <meta name="theme-color" content="#FFF0F7">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="user.css">
 </head>
@@ -104,7 +104,7 @@
                 <div class="input-form">
                     <div class="input-field-wrapper">
                         <i class="fa-solid fa-phone input-icon"></i>
-                        <input type="tel" id="contact-phone" value="+1234567890" placeholder="+91 98765 43210">
+                        <input type="tel" id="contact-phone" value="+91 98765 43210" placeholder="+91 98765 43210">
                     </div>
                     <button id="btn-save-contact" class="btn btn-outline">
                         <i class="fa-solid fa-floppy-disk"></i> Save Contact
@@ -116,114 +116,151 @@
     </div>
 
     <!-- ============================================================
-         GOOGLE DIALER STYLE CALL SCREEN
+         AUTHENTIC GOOGLE PHONE (ANDROID DIALER) UI
          ============================================================ -->
-    <div id="fake-call-overlay" class="call-screen hidden">
+    <div id="fake-call-overlay" class="google-dialer-overlay hidden">
 
-        <!-- INCOMING CALL STATE -->
-        <div id="call-incoming-state" class="call-state">
-            <div class="call-top-bar">
-                <span id="call-clock" class="call-clock-text"></span>
+        <!-- 1. INCOMING CALL SCREEN (Google Phone Style) -->
+        <div id="call-incoming-state" class="dialer-screen">
+            <div class="dialer-top-status">
+                <span class="dialer-carrier">Airtel 5G</span>
+                <span id="call-clock" class="dialer-clock"></span>
             </div>
 
-            <div class="call-caller-section">
-                <div class="call-avatar-wrap">
-                    <div class="call-avatar-inner">D</div>
-                    <div class="call-avatar-ring ring1"></div>
-                    <div class="call-avatar-ring ring2"></div>
+            <div class="dialer-caller-hero">
+                <div class="dialer-avatar-container">
+                    <div class="dialer-avatar-img">D</div>
+                    <div class="dialer-ripple-ring ring-1"></div>
+                    <div class="dialer-ripple-ring ring-2"></div>
                 </div>
-                <h2 class="call-name">Dad</h2>
-                <p class="call-number-label" id="call-contact-number">+91 98765 43210</p>
-                <p class="call-status-label">Incoming call</p>
+                <h1 class="dialer-caller-name">Dad</h1>
+                <p class="dialer-caller-number" id="call-contact-number">+91 98765 43210</p>
+                <div class="dialer-call-tag">Incoming call · Mobile</div>
             </div>
 
-            <!-- Quick actions like real dialer -->
-            <div class="call-quick-row">
-                <div class="call-quick-item">
-                    <div class="call-quick-icon"><i class="fa-solid fa-bell-slash"></i></div>
-                    <span>Mute</span>
+            <!-- Quick Action Pills -->
+            <div class="dialer-incoming-actions">
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-message"></i></div>
+                    <span>Reply</span>
                 </div>
-                <div class="call-quick-item">
-                    <div class="call-quick-icon"><i class="fa-solid fa-message"></i></div>
-                    <span>Message</span>
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-bell-slash"></i></div>
+                    <span>Silence</span>
                 </div>
-                <div class="call-quick-item">
-                    <div class="call-quick-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                    <span>Remind me</span>
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-clock"></i></div>
+                    <span>Remind</span>
                 </div>
             </div>
 
-            <!-- Accept / Decline -->
-            <div class="call-answer-row">
-                <div class="call-btn-group">
-                    <button id="btn-decline-call" class="call-circle-btn btn-decline">
+            <!-- Accept & Decline Touch Controls -->
+            <div class="dialer-touch-bottom">
+                <div class="dialer-btn-group">
+                    <button id="btn-decline-call" class="dialer-circle-btn btn-google-decline" aria-label="Decline">
                         <i class="fa-solid fa-phone-slash"></i>
                     </button>
-                    <span class="call-btn-label">Decline</span>
+                    <span class="dialer-btn-sub">Decline</span>
                 </div>
-                <div class="call-btn-group">
-                    <button id="btn-accept-call" class="call-circle-btn btn-accept">
+
+                <div class="dialer-btn-group">
+                    <button id="btn-accept-call" class="dialer-circle-btn btn-google-accept" aria-label="Answer">
                         <i class="fa-solid fa-phone"></i>
                     </button>
-                    <span class="call-btn-label">Accept</span>
+                    <span class="dialer-btn-sub">Answer</span>
                 </div>
             </div>
         </div>
 
-        <!-- IN-CALL ACTIVE STATE (after accepting) -->
-        <div id="call-active-state" class="call-state hidden">
-            <div class="call-top-bar">
-                <span class="call-active-name">Dad</span>
-                <span id="call-timer-display" class="call-timer">00:00</span>
+        <!-- 2. IN-CALL SCREEN (Exact Android Google Phone 3x3 Grid) -->
+        <div id="call-active-state" class="dialer-screen hidden">
+            <div class="dialer-incall-top">
+                <div class="incall-header-avatar">D</div>
+                <div class="incall-header-text">
+                    <h2 class="incall-header-name">Dad</h2>
+                    <p class="incall-header-number" id="call-active-number">+91 98765 43210</p>
+                    <p id="call-timer-display" class="incall-header-timer">00:00</p>
+                </div>
             </div>
 
-            <div class="call-active-avatar-wrap">
-                <div class="call-active-avatar">D</div>
-                <div class="call-active-number" id="call-active-number">+91 98765 43210</div>
-            </div>
+            <!-- Authentic Google Dialer 3x3 Control Matrix -->
+            <div class="google-dialer-grid-wrap">
+                <div class="google-dialer-grid">
 
-            <!-- In-call 3x3 grid controls (matching your screenshot) -->
-            <div class="incall-grid">
-                <div class="incall-btn">
-                    <div class="incall-icon"><i class="fa-solid fa-circle-dot"></i></div>
-                    <span>Record</span>
-                </div>
-                <div class="incall-btn">
-                    <div class="incall-icon"><i class="fa-solid fa-pause"></i></div>
-                    <span>Hold</span>
-                </div>
-                <div class="incall-btn">
-                    <div class="incall-icon"><i class="fa-solid fa-plus"></i></div>
-                    <span>Add call</span>
-                </div>
-                <div class="incall-btn" id="btn-toggle-mute">
-                    <div class="incall-icon"><i class="fa-solid fa-microphone-slash"></i></div>
-                    <span>Mute</span>
-                </div>
-                <div class="incall-btn">
-                    <div class="incall-icon"><i class="fa-solid fa-video"></i></div>
-                    <span>Video call</span>
-                </div>
-                <div class="incall-btn">
-                    <div class="incall-icon" style="font-size:.85rem"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                    <span>Summarise</span>
-                </div>
-                <div class="incall-btn" id="btn-toggle-speaker">
-                    <div class="incall-icon"><i class="fa-solid fa-volume-high"></i></div>
-                    <span>Speaker</span>
-                </div>
-                <div class="incall-btn end-call-btn" id="btn-end-call">
-                    <div class="incall-icon incall-end"><i class="fa-solid fa-phone-slash"></i></div>
-                    <span>End</span>
-                </div>
-                <div class="incall-btn">
-                    <div class="incall-icon"><i class="fa-solid fa-table-cells"></i></div>
-                    <span>Dial pad</span>
+                    <!-- Row 1 -->
+                    <div class="dialer-grid-item" id="btn-dialer-record">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-circle-dot"></i>
+                        </div>
+                        <span class="dialer-grid-label">Record</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-hold">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-pause"></i>
+                        </div>
+                        <span class="dialer-grid-label">Hold</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-add">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+                        <span class="dialer-grid-label">Add call</span>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="dialer-grid-item" id="btn-toggle-mute">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-microphone-slash"></i>
+                        </div>
+                        <span class="dialer-grid-label">Mute</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-video">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <span class="dialer-grid-label">Video call</span>
+                    </div>
+
+                    <!-- Google Gemini AI Summarise with Rainbow Edge -->
+                    <div class="dialer-grid-item" id="btn-dialer-summarise">
+                        <div class="dialer-grid-icon icon-gemini-summarise">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <span class="dialer-grid-label" style="font-weight:700;">Summarise</span>
+                    </div>
+
+                    <!-- Row 3 -->
+                    <div class="dialer-grid-item" id="btn-toggle-speaker">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </div>
+                        <span class="dialer-grid-label">Speaker</span>
+                    </div>
+
+                    <!-- End Call (Center Red Pill) -->
+                    <div class="dialer-grid-item item-end-call" id="btn-end-call">
+                        <div class="dialer-grid-icon icon-end-call">
+                            <i class="fa-solid fa-phone-slash"></i>
+                        </div>
+                        <span class="dialer-grid-label">End</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-keypad">
+                        <div class="dialer-grid-icon">
+                            <i class="fa-solid fa-braille"></i>
+                        </div>
+                        <span class="dialer-grid-label">Dial pad</span>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Authentic Google Phone Ringtone Audio -->
     <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
     <script src="user.js"></script>
 </body>

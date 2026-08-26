@@ -29,13 +29,17 @@
             </a>
         </header>
 
-        <!-- SOS Alert Banner (shown when SOS is active) -->
+        <!-- SOS Emergency Alert Banner (Shown when SOS is active) -->
         <div id="sos-banner" class="sos-banner hidden">
             <div class="sos-pulse-dot"></div>
             <div class="sos-banner-text">
                 <strong>🚨 EMERGENCY SOS ACTIVE</strong>
-                <span id="sos-banner-time">Just Now</span>
+                <span id="sos-banner-time">Alerting Now</span>
             </div>
+            <!-- Silence Alarm button (Can ONLY turn OFF, cannot be turned on manually) -->
+            <button id="btn-silence-alarm" class="btn-silence-alarm" title="Silence Siren Alarm">
+                <i class="fa-solid fa-volume-xmark"></i> MUTE ALARM
+            </button>
         </div>
 
         <!-- Status Row -->
@@ -89,12 +93,12 @@
             </div>
         </div>
 
-        <!-- 10-Second Audio Recording Player -->
+        <!-- 11-Second Audio Recording Player -->
         <div class="glass-card">
             <div class="card-title-group">
                 <div class="icon-wrap icon-wrap-pink"><i class="fa-solid fa-microphone-lines"></i></div>
                 <div>
-                    <h2>10-Second Ambient Recording</h2>
+                    <h2>11-Second Ambient Recording</h2>
                     <p id="audio-timestamp-text">Captured during SOS activation</p>
                 </div>
             </div>
@@ -103,13 +107,13 @@
                 <p>Audio recording will appear here when SOS is triggered</p>
             </div>
             <div id="audio-container" class="hidden">
-                <audio id="audio-player" controls preload="metadata" style="width:100%;"></audio>
+                <audio id="audio-player" controls preload="metadata" style="width:100%; border-radius:10px;"></audio>
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons: Call Police (100) and Open Maps -->
         <div class="action-row">
-            <a href="tel:112" class="btn btn-danger"><i class="fa-solid fa-phone"></i> Call Police (112)</a>
+            <a href="tel:100" class="btn btn-danger"><i class="fa-solid fa-phone"></i> Call Police (100)</a>
             <a id="btn-open-maps" href="#" target="_blank" class="btn btn-outline"><i class="fa-solid fa-map-location-dot"></i> Open Maps</a>
         </div>
 

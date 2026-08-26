@@ -1,6 +1,6 @@
 /* =============================================
    AURA SAFETY – USER DASHBOARD (LIGHT THEME)
-   Colors from logo: Pink #E91E8C, Purple #7C3AED
+   Colors: Pink #E91E8C, Purple #7C3AED
    ============================================= */
 
 :root {
@@ -157,150 +157,224 @@ body { display: flex; justify-content: center; padding: 16px; }
 .badge-pink { background: var(--pink-lt); color: var(--pink); border: 1px solid var(--pink-md); }
 .badge-red  { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
 
-/* =============================================
-   GOOGLE DIALER CALL SCREEN
-   ============================================= */
-.call-screen {
-    position: fixed; inset: 0; z-index: 9999;
+
+/* ============================================================
+   AUTHENTIC ANDROID GOOGLE PHONE (GOOGLE DIALER) UI
+   Independent Dark Charcoal / Frosted Aesthetic
+   ============================================================ */
+.google-dialer-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: #17181c;
+    color: #e3e3e3;
+    font-family: 'Roboto', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     display: flex; flex-direction: column;
     overflow: hidden;
+    user-select: none;
 }
 
-.call-state { display: flex; flex-direction: column; height: 100%; }
-
-/* ─── Incoming Call State ─── */
-#call-incoming-state {
-    background: linear-gradient(180deg, #1C0B2E 0%, #2D1155 40%, #4A1271 100%);
-    align-items: center; justify-content: space-between;
-    padding: 0 24px 40px;
+.dialer-screen {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 24px 20px 48px;
+    box-sizing: border-box;
+    background: radial-gradient(circle at 50% 30%, #252830 0%, #15161a 100%);
 }
 
-.call-top-bar {
-    width: 100%; text-align: center;
-    padding-top: 20px; padding-bottom: 4px;
+/* Status Bar Header */
+.dialer-top-status {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    font-size: .78rem; color: #8e9199; font-weight: 500;
+    padding: 4px 6px;
 }
-.call-clock-text  { font-size: .85rem; color: rgba(255,255,255,.5); font-weight: 500; }
+.dialer-carrier { letter-spacing: .3px; }
+.dialer-clock { font-variant-numeric: tabular-nums; }
 
-.call-caller-section {
+/* Caller Hero Section */
+.dialer-caller-hero {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    margin-top: 10px;
+}
+.dialer-avatar-container {
+    position: relative;
+    width: 112px; height: 112px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+}
+.dialer-avatar-img {
+    width: 112px; height: 112px; border-radius: 50%;
+    background: linear-gradient(135deg, #1a73e8, #4285f4);
+    color: #ffffff;
+    font-size: 3.2rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; z-index: 2;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.dialer-ripple-ring {
+    position: absolute; border-radius: 50%;
+    border: 2px solid rgba(66, 133, 244, 0.4);
+    animation: dialerRingRipple 2.2s ease-out infinite;
+}
+.ring-1 { width: 146px; height: 146px; animation-delay: 0s; }
+.ring-2 { width: 184px; height: 184px; animation-delay: 0.8s; }
+
+@keyframes dialerRingRipple {
+    0%   { transform: scale(0.85); opacity: 1; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+
+.dialer-caller-name {
+    font-size: 2.1rem; font-weight: 500; color: #f1f3f4;
+    margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.dialer-caller-number {
+    font-size: 1rem; color: #c4c7c5; font-weight: 400;
+    margin-bottom: 8px; letter-spacing: 0.2px;
+}
+.dialer-call-tag {
+    font-size: .85rem; color: #8e9199; font-weight: 400;
+}
+
+/* Incoming Quick Actions */
+.dialer-incoming-actions {
+    display: flex; justify-content: space-around; width: 100%; max-width: 320px;
+    margin: 0 auto;
+}
+.incoming-action-item {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: #c4c7c5; font-size: .75rem; font-weight: 500; cursor: pointer;
+}
+.action-circle-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; color: #e3e3e3;
+    transition: background 0.2s;
+}
+.incoming-action-item:hover .action-circle-icon {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+/* Touch Answer / Decline Bottom Bar */
+.dialer-touch-bottom {
+    display: flex; justify-content: space-around; align-items: center;
+    width: 100%; max-width: 310px; margin: 0 auto;
+}
+.dialer-btn-group {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
-
-.call-avatar-wrap {
-    position: relative; width: 110px; height: 110px;
+.dialer-circle-btn {
+    width: 76px; height: 76px; border-radius: 50%; border: none;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 10px;
+    font-size: 1.8rem; color: #ffffff; cursor: pointer;
+    transition: transform 0.15s, filter 0.2s;
 }
-.call-avatar-inner {
-    width: 110px; height: 110px; border-radius: 50%;
-    background: linear-gradient(135deg,#E91E8C,#7C3AED);
+.dialer-circle-btn:active { transform: scale(0.92); }
+
+.btn-google-decline {
+    background: #ea4335;
+    box-shadow: 0 6px 20px rgba(234, 67, 53, 0.45);
+}
+.btn-google-accept {
+    background: #1e8e3e;
+    box-shadow: 0 6px 20px rgba(30, 142, 62, 0.45);
+    animation: googleAcceptPulse 1.6s infinite;
+}
+@keyframes googleAcceptPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(30, 142, 62, 0.7); }
+    70%  { box-shadow: 0 0 0 18px rgba(30, 142, 62, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(30, 142, 62, 0); }
+}
+.dialer-btn-sub {
+    font-size: .82rem; color: #c4c7c5; font-weight: 500;
+}
+
+/* ─── In-Call State (Exact Google 3x3 Grid) ───────────────── */
+.dialer-incall-top {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding-top: 16px;
+}
+.incall-header-avatar {
+    width: 86px; height: 86px; border-radius: 50%;
+    background: linear-gradient(135deg, #1a73e8, #4285f4);
+    color: #ffffff; font-size: 2.3rem; font-weight: 500;
     display: flex; align-items: center; justify-content: center;
-    font-size: 3rem; font-weight: 800; color: #fff;
-    position: relative; z-index: 2;
-    box-shadow: 0 0 30px rgba(233,30,140,.4);
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
-.call-avatar-ring {
-    position: absolute; border-radius: 50%;
-    border: 2px solid rgba(233,30,140,.3);
-    animation: callRingAnim 2s ease-out infinite;
+.incall-header-name {
+    font-size: 1.8rem; font-weight: 500; color: #f1f3f4;
 }
-.ring1 { width: 140px; height: 140px; animation-delay: 0s; }
-.ring2 { width: 178px; height: 178px; animation-delay: .7s; }
-
-@keyframes callRingAnim {
-    0%   { transform: scale(.85); opacity: .9; }
-    100% { transform: scale(1.3); opacity: 0; }
+.incall-header-number {
+    font-size: .95rem; color: #8e9199; margin-top: 2px;
+}
+.incall-header-timer {
+    font-size: 1.05rem; color: #a8c7fa; font-weight: 600;
+    margin-top: 6px; font-variant-numeric: tabular-nums;
 }
 
-.call-name         { font-size: 2.2rem; font-weight: 800; color: #fff; }
-.call-number-label { font-size: 1rem; color: rgba(255,255,255,.6); }
-.call-status-label { font-size: .88rem; color: rgba(255,255,255,.45); font-style: italic; }
-
-/* Quick actions row */
-.call-quick-row {
-    display: flex; justify-content: space-around;
-    width: 100%; max-width: 320px;
+/* 3x3 Control Matrix */
+.google-dialer-grid-wrap {
+    width: 100%; display: flex; justify-content: center;
+    padding-bottom: 20px;
 }
-.call-quick-item {
-    display: flex; flex-direction: column; align-items: center; gap: 7px;
-    font-size: .7rem; color: rgba(255,255,255,.45);
-}
-.call-quick-icon {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: rgba(255,255,255,.08);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; color: rgba(255,255,255,.45);
+.google-dialer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 22px 26px;
+    width: 100%; max-width: 340px;
+    justify-items: center;
 }
 
-/* Accept / Decline */
-.call-answer-row {
-    display: flex; justify-content: space-around;
-    width: 100%; max-width: 280px;
-}
-.call-btn-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.call-circle-btn {
-    width: 72px; height: 72px; border-radius: 50%; border: none;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.7rem; color: #fff; cursor: pointer; transition: transform .15s;
-}
-.call-circle-btn:active { transform: scale(.92); }
-.btn-decline { background: #EF4444; box-shadow: 0 0 20px rgba(239,68,68,.5); }
-.btn-accept  {
-    background: #10B981; box-shadow: 0 0 20px rgba(16,185,129,.5);
-    animation: acceptPulseAnim 1.5s infinite;
-}
-@keyframes acceptPulseAnim {
-    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.7); }
-    70%  { box-shadow: 0 0 0 16px rgba(16,185,129,0); }
-    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
-}
-.call-btn-label { font-size: .78rem; color: rgba(255,255,255,.65); font-weight: 600; }
-
-/* ─── In-Call Active State ─── */
-#call-active-state {
-    background: #1C0B2E;
-    align-items: center; justify-content: space-between;
-    padding: 0 24px 40px;
-}
-
-.call-active-name { font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,.75); }
-.call-timer       { font-size: .9rem; color: #F9A8D4; font-weight: 600; margin-left: 8px; }
-
-.call-active-avatar-wrap {
+.dialer-grid-item {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding-top: 20px;
+    cursor: pointer; user-select: none;
 }
-.call-active-avatar {
-    width: 90px; height: 90px; border-radius: 50%;
-    background: linear-gradient(135deg,#E91E8C,#7C3AED);
+.dialer-grid-icon {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: #282a30;
     display: flex; align-items: center; justify-content: center;
-    font-size: 2.4rem; font-weight: 800; color: #fff;
+    font-size: 1.45rem; color: #e3e3e3;
+    transition: background 0.18s, color 0.18s, transform 0.12s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
 }
-.call-active-number { font-size: .85rem; color: rgba(255,255,255,.55); }
+.dialer-grid-icon:active { transform: scale(0.92); }
+.dialer-grid-icon.active-toggle {
+    background: #ffffff; color: #17181c;
+}
 
-/* In-call 3x3 Grid */
-.incall-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 16px; width: 100%; max-width: 340px;
+.dialer-grid-label {
+    font-size: .76rem; color: #c4c7c5; font-weight: 400;
+    letter-spacing: .1px;
 }
-.incall-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    font-size: .72rem; color: rgba(255,255,255,.6); font-weight: 600; cursor: pointer;
+
+/* Google Gemini Summarise Rainbow Halo */
+.icon-gemini-summarise {
+    position: relative;
+    background: #282a30;
+    box-shadow: 0 0 0 2px transparent;
 }
-.incall-icon {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: rgba(255,255,255,.10);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; color: rgba(255,255,255,.8);
-    transition: background .2s;
+.icon-gemini-summarise::before {
+    content: ''; position: absolute; inset: -2.5px; border-radius: 50%;
+    background: linear-gradient(135deg, #f43f5e, #fbbf24, #3b82f6, #10b981, #a855f7);
+    z-index: -1;
+    animation: geminiRotate 4s linear infinite;
 }
-.incall-icon:hover { background: rgba(255,255,255,.18); }
-.incall-icon.active { background: rgba(233,30,140,.35); color: #F9A8D4; }
-.incall-end { background: #EF4444 !important; color: #fff !important; }
-.incall-end:hover { background: #DC2626 !important; }
-.end-call-btn .incall-icon { animation: endPulse 1.8s infinite; }
-@keyframes endPulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
-    50%      { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+@keyframes geminiRotate {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Red Center End Call Button */
+.icon-end-call {
+    background: #ea4335 !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 20px rgba(234, 67, 53, 0.5) !important;
+}
+.icon-end-call:hover { background: #d93025 !important; }
+.item-end-call .dialer-grid-label {
+    color: #ea4335; font-weight: 600;
 }
 
 /* ─── Toast ─────────────────────────────────── */
@@ -309,13 +383,13 @@ body { display: flex; justify-content: center; padding: 16px; }
     width: 90%; max-width: 440px;
     padding: 13px 18px; border-radius: 14px;
     background: var(--surface); border: 1.5px solid var(--pink-md);
-    box-shadow: 0 8px 24px var(--shadow); z-index: 10000;
+    box-shadow: 0 8px 24px var(--shadow); z-index: 100000;
     display: flex; align-items: center; gap: 10px;
     font-size: .83rem; font-weight: 600; color: var(--text);
     animation: toastSlide .3s ease;
 }
-.toast-red   { border-color: #FECACA; background: #FEF2F2; }
-.toast-green { border-color: #A7F3D0; background: #ECFDF5; }
+.toast-red   { border-color: #FECACA; background: #FEF2F2; color: #B91C1C; }
+.toast-green { border-color: #A7F3D0; background: #ECFDF5; color: #065F46; }
 @keyframes toastSlide {
     from { transform: translate(-50%,-20px); opacity: 0; }
     to   { transform: translate(-50%,0); opacity: 1; }

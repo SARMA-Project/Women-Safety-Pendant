@@ -12,7 +12,8 @@ let callSeconds = 0;
 let clockTimer  = null;
 let muteOn = false;
 let speakerOn = false;
-let emergencyContact = localStorage.getItem('pendant_contact') || '+1234567890';
+let holdOn = false;
+let emergencyContact = localStorage.getItem('pendant_contact') || '+91 98765 43210';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -23,15 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-connect-ble').addEventListener('click', pairBLE);
     document.getElementById('btn-save-contact').addEventListener('click', saveContact);
 
+    // Google Dialer buttons
     document.getElementById('btn-decline-call').addEventListener('click', stopFakeCall);
     document.getElementById('btn-accept-call').addEventListener('click', acceptFakeCall);
     document.getElementById('btn-end-call').addEventListener('click', stopFakeCall);
 
     document.getElementById('btn-toggle-mute').addEventListener('click', toggleMute);
     document.getElementById('btn-toggle-speaker').addEventListener('click', toggleSpeaker);
+    document.getElementById('btn-dialer-hold').addEventListener('click', toggleHold);
 
     updateCallClock();
-    clockTimer = setInterval(updateCallClock, 15000);
+    clockTimer = setInterval(updateCallClock, 10000);
 });
 
 function saveContact() {
@@ -40,13 +43,13 @@ function saveContact() {
     localStorage.setItem('pendant_contact', emergencyContact);
     document.getElementById('call-contact-number').textContent = emergencyContact;
     document.getElementById('call-active-number').textContent = emergencyContact;
-    showToast('Contact saved: ' + emergencyContact, 'green');
+    showToast('Emergency contact saved: ' + emergencyContact, 'green');
 }
 
 // ─── BLE ─────────────────────────────────────────────────────
 async function pairBLE() {
     if (!navigator.bluetooth) {
-        showToast('Web Bluetooth requires Chrome on Android/Desktop.', 'red');
+        showToast('Web Bluetooth requires Google Chrome on Android or Desktop.', 'red');
         return;
     }
     try {
@@ -67,9 +70,9 @@ async function pairBLE() {
         bleChar.addEventListener('characteristicvaluechanged', onGesture);
 
         setBLEStatus(true);
-        showToast('Pendant connected!', 'green');
+        showToast('Safety Pendant connected successfully!', 'green');
     } catch (e) {
-        showToast('BLE error: ' + (e.message || e), 'red');
+        showToast('BLE Connection: ' + (e.message || e), 'red');
     }
 }
 
@@ -104,9 +107,10 @@ function handleGestureCode(val) {
     if (val === 0x08) dispatchEmergencySOS();
 }
 
-// ─── Fake Incoming Call ───────────────────────────────────────
+// ─── Google Phone Fake Call Screen ───────────────────────────
 function showFakeCallOverlay() {
-    document.getElementById('fake-call-overlay').classList.remove('hidden');
+    const overlay = document.getElementById('fake-call-overlay');
+    overlay.classList.remove('hidden');
     document.getElementById('call-incoming-state').classList.remove('hidden');
     document.getElementById('call-active-state').classList.add('hidden');
 
@@ -126,11 +130,11 @@ function updateCallClock() {
 function acceptFakeCall() {
     document.getElementById('ringtone-audio').pause();
 
-    // Transition to in-call active state
+    // Transition to authentic in-call 3x3 screen
     document.getElementById('call-incoming-state').classList.add('hidden');
     document.getElementById('call-active-state').classList.remove('hidden');
 
-    // Start timer
+    // Start in-call incrementing timer
     callSeconds = 0;
     if (callTimer) clearInterval(callTimer);
     callTimer = setInterval(() => {
@@ -147,22 +151,29 @@ function stopFakeCall() {
     document.getElementById('fake-call-overlay').classList.add('hidden');
     document.getElementById('call-timer-display').textContent = '00:00';
     callSeconds = 0;
-    muteOn = false; speakerOn = false;
-    document.querySelector('#btn-toggle-mute .incall-icon').classList.remove('active');
-    document.querySelector('#btn-toggle-speaker .incall-icon').classList.remove('active');
+
+    muteOn = false; speakerOn = false; holdOn = false;
+    document.querySelector('#btn-toggle-mute .dialer-grid-icon')?.classList.remove('active-toggle');
+    document.querySelector('#btn-toggle-speaker .dialer-grid-icon')?.classList.remove('active-toggle');
+    document.querySelector('#btn-dialer-hold .dialer-grid-icon')?.classList.remove('active-toggle');
 }
 
 function toggleMute() {
     muteOn = !muteOn;
-    document.querySelector('#btn-toggle-mute .incall-icon').classList.toggle('active', muteOn);
+    document.querySelector('#btn-toggle-mute .dialer-grid-icon')?.classList.toggle('active-toggle', muteOn);
 }
 
 function toggleSpeaker() {
     speakerOn = !speakerOn;
-    document.querySelector('#btn-toggle-speaker .incall-icon').classList.toggle('active', speakerOn);
+    document.querySelector('#btn-toggle-speaker .dialer-grid-icon')?.classList.toggle('active-toggle', speakerOn);
 }
 
-// ─── Emergency SOS ─────────────────────────────────────────── 
+function toggleHold() {
+    holdOn = !holdOn;
+    document.querySelector('#btn-dialer-hold .dialer-grid-icon')?.classList.toggle('active-toggle', holdOn);
+}
+
+// ─── Emergency SOS Dispatch ──────────────────────────────────
 function dispatchEmergencySOS() {
     if (!navigator.geolocation) {
         triggerAlerts(emergencyContact, null);
@@ -172,21 +183,19 @@ function dispatchEmergencySOS() {
         const { latitude: lat, longitude: lng, accuracy, speed } = pos.coords;
         const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
+        // Save SOS event to localStorage for real-time cross-tab sync
         localStorage.setItem('aura_sos_event', JSON.stringify({
             lat, lng, accuracy, speed: speed || 0,
-            timestamp: new Date().toISOString(), status: 'EMERGENCY SOS ACTIVE'
-        }));
-        // Dispatch storage event for same-tab (same-page) listeners
-        window.dispatchEvent(new StorageEvent('storage', {
-            key: 'aura_sos_event',
-            newValue: localStorage.getItem('aura_sos_event')
+            timestamp: new Date().toISOString(),
+            status: 'EMERGENCY SOS ACTIVE'
         }));
 
         triggerAlerts(emergencyContact, mapsUrl);
-        record11sAudio().then(blob => {
-            if (!blob) return;
-            const url = URL.createObjectURL(blob);
-            localStorage.setItem('aura_audio_url', url);
+
+        // Record 11s background audio and store as Base64 Data URL for cross-page playback
+        record11sAudio().then(base64Data => {
+            if (!base64Data) return;
+            localStorage.setItem('aura_audio_base64', base64Data);
             localStorage.setItem('aura_audio_time', new Date().toLocaleTimeString());
         });
     }, () => triggerAlerts(emergencyContact, null), { enableHighAccuracy: true });
@@ -194,23 +203,58 @@ function dispatchEmergencySOS() {
 
 function triggerAlerts(phone, mapsUrl) {
     const loc = mapsUrl ? `Location: ${mapsUrl}` : 'Location unavailable!';
-    const smsBody = encodeURIComponent(`🚨 EMERGENCY SOS! She needs help! ${loc}`);
+    const smsBody = encodeURIComponent(`🚨 EMERGENCY SOS! She needs urgent help! ${loc}`);
     showToast(`🚨 SOS Dispatched to ${phone}`, 'red');
     window.location.href = `sms:${phone}?body=${smsBody}`;
     setTimeout(() => { window.location.href = `tel:${phone}`; }, 1500);
 }
 
+// ─── Audio Recording (Base64 conversion for cross-tab sharing) ─
 function record11sAudio() {
     return new Promise(resolve => {
-        if (!navigator.mediaDevices?.getUserMedia) { resolve(null); return; }
+        if (!navigator.mediaDevices?.getUserMedia) {
+            console.warn('[Audio] getUserMedia not supported');
+            resolve(null);
+            return;
+        }
+
+        const mimeTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav', ''];
+        let selectedMime = '';
+        for (const type of mimeTypes) {
+            if (type === '' || MediaRecorder.isTypeSupported(type)) {
+                selectedMime = type;
+                break;
+            }
+        }
+
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            const rec = new MediaRecorder(stream);
+            const options = selectedMime ? { mimeType: selectedMime } : {};
+            const rec = new MediaRecorder(stream, options);
             const chunks = [];
-            rec.ondataavailable = e => chunks.push(e.data);
-            rec.onstop = () => resolve(new Blob(chunks, { type: 'audio/m4a' }));
+
+            rec.ondataavailable = e => {
+                if (e.data && e.data.size > 0) chunks.push(e.data);
+            };
+
+            rec.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                const blob = new Blob(chunks, { type: selectedMime || 'audio/webm' });
+
+                // Convert Blob to Base64 String so any tab/window can play it
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            };
+
             rec.start();
-            setTimeout(() => rec.stop(), 11000);
-        }).catch(() => resolve(null));
+            setTimeout(() => {
+                if (rec.state === 'recording') rec.stop();
+            }, 11000);
+        }).catch(err => {
+            console.error('[Audio] Microphone permission/recording error:', err);
+            resolve(null);
+        });
     });
 }
 
