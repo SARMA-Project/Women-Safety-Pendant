@@ -1,62 +1,101 @@
 /*
- * ESP32-S3 SUPER MINI - NATIVE USB CDC SERIAL TEST
+ * STEP 2: ESP32-S3 BLE BLUETOOTH PAIRING FIRMWARE
  * 
- * ARDUINO IDE BOARD SETTINGS (CRITICAL):
- * 1. Board: "ESP32S3 Dev Module"
- * 2. USB CDC On Boot: "Enabled"   <-- (MUST BE ENABLED FOR USB-C SERIAL!)
- * 3. Upload Mode: "UART0 / Hardware CDC"
+ * Target Pin: GPIO 3 (Verified in Step 1)
+ * Device Name: Safety_Pendant_S3
+ * 
+ * Arduino IDE Settings:
+ * - Board: ESP32S3 Dev Module
+ * - USB CDC On Boot: Enabled
  */
 
 #include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
 
-const int testPins[] = {1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13};
-const int count = 11;
+#define BUTTON_PIN 3 // Verified physical pin from Step 1!
 
-unsigned long lastTimer = 0;
+// Custom BLE UUIDs
+#define SERVICE_UUID        "4fa8c001-1402-4ca2-8979-45d4d9807601"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+BLEServer *pServer = NULL;
+BLECharacteristic *pCharacteristic = NULL;
+bool deviceConnected = false;
+
+class MyServerCallbacks : public BLEServerCallbacks {
+    void onConnect(BLEServer *pServer) {
+        deviceConnected = true;
+        Serial.println("\n[BLE EVENT] >>> PHONE CONNECTED TO ESP32-S3 OVER BLUETOOTH! <<<");
+    }
+
+    void onDisconnect(BLEServer *pServer) {
+        deviceConnected = false;
+        Serial.println("\n[BLE EVENT] Phone Disconnected. Re-advertising Bluetooth immediately...");
+        BLEDevice::startAdvertising();
+    }
+};
 
 void setup() {
-    // Initialize Native USB Serial
     Serial.begin(115200);
 
-    // Wait up to 3 seconds for Serial Monitor connection
     unsigned long startWait = millis();
     while (!Serial && (millis() - startWait < 3000)) {
         delay(10);
     }
 
     Serial.println("\n=======================================================");
-    Serial.println("  ESP32-S3 NATIVE USB CDC SERIAL MONITOR INITIALIZED   ");
+    Serial.println("  STEP 2: ESP32-S3 BLE BLUETOOTH PAIRING FIRMWARE    ");
     Serial.println("=======================================================");
 
-    for (int i = 0; i < count; i++) {
-        pinMode(testPins[i], INPUT_PULLUP);
-    }
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-    Serial.println("[SYSTEM READY] Touch GND wire to pins 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, or 13!\n");
+    // Initialize BLE Server
+    BLEDevice::init("Safety_Pendant_S3");
+    pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new MyServerCallbacks());
+
+    BLEService *pService = pServer->createService(SERVICE_UUID);
+    pCharacteristic = pService->createCharacteristic(
+        CHARACTERISTIC_UUID,
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+
+    pService->start();
+
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    BLEDevice::startAdvertising();
+
+    Serial.println("[BLE READY] Bluetooth ALWAYS ON & Advertising 'Safety_Pendant_S3'!");
+    Serial.println("[INSTRUCTION] Open Web App in Chrome & tap 'PAIR ESP32-S3 PENDANT'!\n");
 }
 
 void loop() {
     yield();
 
-    // 1. Check for wire touch (LOW)
-    for (int i = 0; i < count; i++) {
-        int pin = testPins[i];
-        if (digitalRead(pin) == LOW) {
-            Serial.printf("\n>>> SUCCESS! WIRE TOUCH DETECTED ON GPIO %d <<<\n", pin);
+    // Check GPIO 3 wire touch
+    if (digitalRead(BUTTON_PIN) == LOW) {
+        Serial.println("\n>>> GPIO 3 TOUCH DETECTED! Sending BLE Payload... <<<");
 
-            while (digitalRead(pin) == LOW) {
-                yield();
-                delay(10);
-            }
-            Serial.printf("[RELEASED] GPIO %d disconnected from GND.\n\n", pin);
-            delay(100);
+        if (pCharacteristic != NULL && deviceConnected) {
+            uint8_t payload = 0x02; // Test Payload
+            pCharacteristic->setValue(&payload, 1);
+            pCharacteristic->notify();
+            Serial.println("[BLE SENT] Payload 0x02 sent over Bluetooth to Chrome Web App!");
+        } else {
+            Serial.println("[BLE NOTICE] Touch detected, but phone is not paired yet over Bluetooth!");
         }
-    }
 
-    // 2. Heartbeat Ping every 2 seconds
-    if (millis() - lastTimer > 2000) {
-        lastTimer = millis();
-        Serial.println("[ESP32-S3 ALIVE] Heartbeat ping... Waiting for wire touch...");
+        while (digitalRead(BUTTON_PIN) == LOW) {
+            yield();
+            delay(10);
+        }
+        Serial.println("[RELEASED] GPIO 3 wire disconnected.\n");
+        delay(100);
     }
 
     delay(20);
