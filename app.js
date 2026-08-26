@@ -6,7 +6,7 @@ const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-// BLE Configuration
+// Service & Characteristic UUIDs
 const SERVICE_UUID = "4fa8c001-1402-4ca2-8979-45d4d9807601";
 const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
@@ -20,12 +20,12 @@ let callTimer = null;
 let callSeconds = 0;
 let emergencyContact = localStorage.getItem('pendant_contact') || '+1234567890';
 
-// Map & Tracker Globals
+// Leaflet Map Globals for Parent Tracker
 let map = null, marker = null, circle = null;
-let currentLat = 0, currentLng = 0;
+let currentLat = 20.5937, currentLng = 78.9629;
 let isMapInitialized = false;
 
-// 1. Role Selection & Switching Logic
+// 1. Role Selection & Screen Switching Logic
 window.selectRole = function(role) {
     document.getElementById('role-selector-screen').classList.add('hidden');
 
@@ -35,22 +35,25 @@ window.selectRole = function(role) {
     } else if (role === 'parent') {
         document.getElementById('parent-dashboard-screen').classList.remove('hidden');
         document.getElementById('user-dashboard-screen').classList.add('hidden');
-        if (!isMapInitialized) {
+        
+        // Zero Permission Parent Access: Load map immediately
+        setTimeout(() => {
             initParentMap();
-        }
+        }, 100);
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('contact-phone').value = emergencyContact;
 
+    // Switch Role Button
     document.getElementById('btn-switch-role').addEventListener('click', () => {
         document.getElementById('user-dashboard-screen').classList.add('hidden');
         document.getElementById('parent-dashboard-screen').classList.add('hidden');
         document.getElementById('role-selector-screen').classList.remove('hidden');
     });
 
-    // Web Bluetooth Pairing
+    // Web Bluetooth Pairing (Only for Woman User Page)
     document.getElementById('btn-connect-ble').addEventListener('click', async () => {
         try {
             console.log('Requesting Bluetooth Device...');
@@ -76,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Save Contact
+    // Save Contact Number
     document.getElementById('btn-save-contact').addEventListener('click', () => {
         emergencyContact = document.getElementById('contact-phone').value;
         localStorage.setItem('pendant_contact', emergencyContact);
@@ -88,10 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-accept-call').addEventListener('click', acceptFakeCall);
     document.getElementById('btn-cancel-grace').addEventListener('click', cancelGracePeriod);
 
-    // Map Recenter
+    // Map Recenter for Parent Page
     document.getElementById('btn-recenter-map')?.addEventListener('click', () => {
-        if (currentLat !== 0 && currentLng !== 0 && map) {
-            map.setView([currentLat, currentLng], 17, { animate: true });
+        if (map && currentLat !== 0 && currentLng !== 0) {
+            map.setView([currentLat, currentLng], 16, { animate: true });
         }
     });
 });
@@ -126,14 +129,22 @@ function handleGestureNotification(event) {
 
 function handleGestureCode(value) {
     switch (value) {
-        case 0x02: showFakeCallOverlay(); break;
-        case 0x03: startGracePeriod('stealth'); break;
-        case 0x08: startGracePeriod('full'); break;
-        case 0x06: cancelGracePeriod(); break;
+        case 0x02: // 2 Presses -> Fake Call ("Dad Calling")
+            showFakeCallOverlay();
+            break;
+        case 0x08: // 2 Sec Hold -> Full Emergency SOS
+            startGracePeriod('full');
+            break;
+        case 0x03: // 3 Presses -> Stealth SOS
+            startGracePeriod('stealth');
+            break;
+        case 0x06: // 6 Presses -> Cancel SOS
+            cancelGracePeriod();
+            break;
     }
 }
 
-// Fake Call System
+// Fake Call System (2 Presses)
 function showFakeCallOverlay() {
     const overlay = document.getElementById('fake-call-overlay');
     const ringtone = document.getElementById('ringtone-audio');
@@ -203,7 +214,7 @@ function cancelGracePeriod() {
     }
 }
 
-// Emergency SOS Dispatcher
+// Emergency SOS Dispatcher (2 Sec Hold)
 async function executeEmergencyDispatch(sosType) {
     console.log('Dispatching Emergency SOS:', sosType);
 
@@ -212,8 +223,13 @@ async function executeEmergencyDispatch(sosType) {
         const lng = pos.coords.longitude;
         const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
+        // 1. Update Parent Live Tracker Map Position immediately
+        updateParentMapPosition(lat, lng, pos.coords.accuracy, pos.coords.speed);
+
+        // 2. Record 10-second audio snippet
         const audioBlob = await record10sAudio();
 
+        // 3. Send SMS with Live Location Link
         const smsMessage = encodeURIComponent(
             sosType === 'stealth' 
                 ? `STEALTH SOS! I need help. Location: ${mapsUrl}` 
@@ -222,6 +238,7 @@ async function executeEmergencyDispatch(sosType) {
 
         window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
 
+        // 4. Auto-dial Emergency Phone Call
         if (sosType === 'full') {
             setTimeout(() => {
                 window.location.href = `tel:${emergencyContact}`;
@@ -259,11 +276,16 @@ function record10sAudio() {
 }
 
 // ==========================================================
-// PARENT LIVE MAP TRACKER ENGINE (Leaflet + Supabase)
+// PARENT LIVE MAP TRACKER ENGINE (ZERO PERMISSION PROMPTS)
 // ==========================================================
 function initParentMap() {
+    if (isMapInitialized) {
+        if (map) map.invalidateSize();
+        return;
+    }
+
     isMapInitialized = true;
-    map = L.map('map').setView([20.5937, 78.9629], 5);
+    map = L.map('map').setView([currentLat, currentLng], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -276,9 +298,15 @@ function initParentMap() {
         iconAnchor: [10, 10]
     });
 
-    marker = L.marker([0, 0], { icon: customIcon }).addTo(map);
-    circle = L.circle([0, 0], { radius: 15, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }).addTo(map);
+    marker = L.marker([currentLat, currentLng], { icon: customIcon }).addTo(map);
+    circle = L.circle([currentLat, currentLng], { radius: 15, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }).addTo(map);
 
+    // Initial map layout fix
+    setTimeout(() => {
+        if (map) map.invalidateSize();
+    }, 200);
+
+    // If Supabase is configured, subscribe to realtime coords
     if (supabase) {
         subscribeToParentRealtime();
     }
@@ -287,14 +315,9 @@ function initParentMap() {
 function subscribeToParentRealtime() {
     document.getElementById('tracker-status-badge').innerText = 'LIVE TRACKING ACTIVE';
     document.getElementById('tracker-status-badge').className = 'badge badge-danger';
-
-    // Geolocation fallback demo for map pin
-    navigator.geolocation.getCurrentPosition((pos) => {
-        updateMapCoordinates(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, pos.coords.speed);
-    });
 }
 
-function updateMapCoordinates(lat, lng, accuracy = 10, speed = 0) {
+function updateParentMapPosition(lat, lng, accuracy = 10, speed = 0) {
     currentLat = lat;
     currentLng = lng;
     const latLng = [lat, lng];
