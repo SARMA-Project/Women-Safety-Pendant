@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AURA | Smart Safety System</title>
     
     <meta name="theme-color" content="#090D16">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     
     <!-- Google Fonts & Font Awesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,195 +22,176 @@
 </head>
 <body>
 
-    <div class="app-viewport">
+    <div class="app-wrapper">
         
-        <!-- Header Bar -->
+        <!-- Header & Top Navigation Bar -->
         <header class="app-header">
             <div class="brand-logo">
                 <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="brand-text">
                     <h1>AURA SAFETY</h1>
-                    <span class="sub-brand">WOMEN SAFETY SYSTEM</span>
+                    <span class="sub-brand">ESP32-S3 PENDANT SYSTEM</span>
                 </div>
             </div>
-            <button id="btn-switch-role" class="role-switcher-btn">
-                <i class="fa-solid fa-arrows-rotate"></i> Change View
-            </button>
+            
+            <!-- Tab Navigation for Woman User & Parents -->
+            <nav class="top-nav-tabs">
+                <button id="tab-user" class="nav-tab active-tab" onclick="switchTab('user')">
+                    <i class="fa-solid fa-person-dress"></i> Woman User Page
+                </button>
+                <button id="tab-parent" class="nav-tab" onclick="switchTab('parent')">
+                    <i class="fa-solid fa-users"></i> Parents Tracking Page
+                </button>
+            </nav>
         </header>
 
-        <!-- 1. ROLE SELECTION SCREEN -->
-        <section id="role-selector-screen" class="view-screen">
-            <div class="role-hero">
-                <h2>Welcome to AURA</h2>
-                <p>Select your access mode to continue</p>
-            </div>
+        <main class="content-container">
 
-            <div class="role-cards-grid">
-                <div class="role-card" onclick="selectRole('user')">
-                    <div class="role-icon icon-rose"><i class="fa-solid fa-person-dress"></i></div>
-                    <h3>I am the Pendant User (Woman)</h3>
-                    <p>Connect ESP32-S3 Pendant over Bluetooth, pair device & manage fake calls</p>
-                    <button class="btn btn-rose"><i class="fa-solid fa-shield"></i> Open Woman User Page</button>
+            <!-- ========================================================== -->
+            <!-- 1. WOMAN USER PAGE -->
+            <!-- ========================================================== -->
+            <section id="user-page" class="page-section">
+                
+                <div class="banner banner-rose">
+                    <span><i class="fa-solid fa-user-shield"></i> WOMAN USER DASHBOARD</span>
+                    <span id="ble-status-pill" class="status-pill status-disconnected">
+                        <span class="status-dot"></span> <span id="ble-status-text">DISCONNECTED</span>
+                    </span>
                 </div>
 
-                <div class="role-card" onclick="selectRole('parent')">
-                    <div class="role-icon icon-blue"><i class="fa-solid fa-users"></i></div>
-                    <h3>I am a Parent / Family Contact</h3>
-                    <p>Instant live map tracking, emergency alerts, battery level & audio player (No permission required)</p>
-                    <button class="btn btn-blue"><i class="fa-solid fa-location-dot"></i> Instant Parent Access</button>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- 2. WOMAN USER DASHBOARD PAGE -->
-        <section id="user-dashboard-screen" class="view-screen hidden">
-            
-            <div class="view-banner banner-user">
-                <span><i class="fa-solid fa-user-shield"></i> WOMAN USER PAGE</span>
-                <span id="ble-status-pill" class="status-pill status-disconnected">
-                    <span class="status-dot"></span> <span id="ble-status-text">DISCONNECTED</span>
-                </span>
-            </div>
-
-            <!-- BLE Connection Card -->
-            <div class="glass-card">
-                <div class="card-header">
-                    <div class="card-icon-title">
-                        <i class="fa-brands fa-bluetooth-b highlight-blue"></i>
+                <!-- HUGE Bluetooth Pairing Card -->
+                <div class="glass-card highlight-card">
+                    <div class="card-title-group">
+                        <i class="fa-brands fa-bluetooth-b icon-blue"></i>
                         <div>
-                            <h3>Pair ESP32-S3 Safety Pendant</h3>
-                            <p>Turn on Bluetooth and pair with your pendant</p>
+                            <h2>Pair ESP32-S3 Safety Pendant</h2>
+                            <p>Connect your Bluetooth 2-pin push button pendant</p>
                         </div>
                     </div>
-                </div>
-                <button id="btn-connect-ble" class="btn btn-glow-primary">
-                    <i class="fa-solid fa-link"></i> Connect & Pair ESP32-S3 Pendant
-                </button>
-            </div>
-
-            <!-- Contact Input Card -->
-            <div class="glass-card">
-                <div class="card-header">
-                    <div class="card-icon-title">
-                        <i class="fa-solid fa-address-book highlight-emerald"></i>
-                        <div>
-                            <h3>Parent / Emergency Contact Number</h3>
-                            <p>Phone number for SMS alerts & auto-calls</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="input-form">
-                    <div class="input-field-wrapper">
-                        <i class="fa-solid fa-phone input-icon"></i>
-                        <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
-                    </div>
-                    <button id="btn-save-contact" class="btn btn-glass">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Contact Number
+                    <button id="btn-connect-ble" class="btn btn-primary-glow btn-large">
+                        <i class="fa-solid fa-wifi"></i> PAIR ESP32-S3 PENDANT (BLUETOOTH)
                     </button>
                 </div>
-            </div>
 
-            <!-- Gesture Reference & Simulator -->
-            <div class="glass-card">
-                <div class="card-header">
-                    <div class="card-icon-title">
-                        <i class="fa-solid fa-hand-pointer highlight-amber"></i>
+                <!-- Software System Test Buttons (Test before hardware) -->
+                <div class="glass-card">
+                    <div class="card-title-group">
+                        <i class="fa-solid fa-flask icon-amber"></i>
                         <div>
-                            <h3>2-Pin Push Button Gestures</h3>
-                            <p>Pendant button triggers & on-screen tester</p>
+                            <h2>Software System Simulator (Test Software First)</h2>
+                            <p>Click below to test software features before using ESP32 hardware button</p>
                         </div>
                     </div>
+
+                    <div class="simulator-actions-grid">
+                        <button class="btn btn-sim-card sim-blue" onclick="triggerGesture(0x02)">
+                            <div class="sim-title"><i class="fa-solid fa-phone-volume"></i> Test 2 Presses (Fake Dad Call)</div>
+                            <span class="sim-desc">Plays ringtone & shows "Dad Calling" incoming screen</span>
+                        </button>
+
+                        <button class="btn-sim-card sim-red" onclick="triggerGesture(0x08)">
+                            <div class="sim-title"><i class="fa-solid fa-triangle-exclamation"></i> Test 2 Sec Hold (Emergency SOS)</div>
+                            <span class="sim-desc">Records 10s audio, updates Parent Map & sends alerts</span>
+                        </button>
+
+                        <button class="btn-sim-card sim-emerald" onclick="triggerGesture(0x06)">
+                            <div class="sim-title"><i class="fa-solid fa-circle-xmark"></i> Test 6 Presses (Cancel SOS)</div>
+                            <span class="sim-desc">Cancels active SOS within 10-second grace window</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="gesture-grid">
-                    <div class="gesture-card">
-                        <div class="gesture-info">
-                            <span class="gesture-pill pill-blue">2 Presses (Double Click)</span>
-                            <h4>Fake Call ("Dad Calling")</h4>
+                <!-- Emergency Contact Number Setup -->
+                <div class="glass-card">
+                    <div class="card-title-group">
+                        <i class="fa-solid fa-address-book icon-emerald"></i>
+                        <div>
+                            <h2>Emergency Phone Number Setup</h2>
+                            <p>Primary contact for auto-dialing & SMS link alerts</p>
                         </div>
-                        <button class="btn-sim" onclick="simulateGesture(0x02)">Test <i class="fa-solid fa-play"></i></button>
                     </div>
-
-                    <div class="gesture-card">
-                        <div class="gesture-info">
-                            <span class="gesture-pill pill-red">2 Sec Hold</span>
-                            <h4>Full Emergency SOS</h4>
+                    <div class="input-form">
+                        <div class="input-field-wrapper">
+                            <i class="fa-solid fa-phone input-icon"></i>
+                            <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
                         </div>
-                        <button class="btn-sim" onclick="simulateGesture(0x08)">Test <i class="fa-solid fa-play"></i></button>
+                        <button id="btn-save-contact" class="btn btn-glass">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Contact Number
+                        </button>
                     </div>
+                </div>
 
-                    <div class="gesture-card">
-                        <div class="gesture-info">
-                            <span class="gesture-pill pill-amber">3 Presses (Triple Click)</span>
-                            <h4>Stealth Silent SOS</h4>
+            </section>
+
+
+            <!-- ========================================================== -->
+            <!-- 2. PARENTS TRACKING PAGE (ZERO PERMISSIONS REQUIRED) -->
+            <!-- ========================================================== -->
+            <section id="parent-page" class="page-section hidden">
+                
+                <div class="banner banner-blue">
+                    <span><i class="fa-solid fa-eye"></i> PARENT LIVE TRACKING PAGE</span>
+                    <span id="tracker-status-badge" class="badge badge-danger">LIVE MONITORING ACTIVE</span>
+                </div>
+
+                <!-- Live Map Card -->
+                <div class="glass-card map-wrapper-card">
+                    <div id="map"></div>
+                </div>
+
+                <!-- Full Incident Details & 10s Audio Player -->
+                <div class="glass-card">
+                    <div class="card-title-group">
+                        <i class="fa-solid fa-circle-info icon-blue"></i>
+                        <div>
+                            <h2>Live Tracking & Incident Details</h2>
+                            <p>Real-time telemetry updated on 2-sec hold button press</p>
                         </div>
-                        <button class="btn-sim" onclick="simulateGesture(0x03)">Test <i class="fa-solid fa-play"></i></button>
                     </div>
 
-                    <div class="gesture-card">
-                        <div class="gesture-info">
-                            <span class="gesture-pill pill-emerald">6 Rapid Presses</span>
-                            <h4>Cancel SOS (Within 10s)</h4>
+                    <div class="details-grid">
+                        <div class="detail-box">
+                            <span class="detail-label">Status</span>
+                            <span id="detail-status" class="detail-val text-red">NORMAL</span>
                         </div>
-                        <button class="btn-sim" onclick="simulateGesture(0x06)">Test <i class="fa-solid fa-play"></i></button>
+                        <div class="detail-box">
+                            <span class="detail-label">Pendant Battery</span>
+                            <span id="detail-battery" class="detail-val text-emerald">95%</span>
+                        </div>
+                        <div class="detail-box">
+                            <span class="detail-label">Movement Speed</span>
+                            <span id="detail-speed" class="detail-val text-blue">0 km/h</span>
+                        </div>
+                        <div class="detail-box">
+                            <span class="detail-label">GPS Accuracy</span>
+                            <span id="detail-accuracy" class="detail-val text-amber">8 meters</span>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </section>
 
-
-        <!-- 3. PARENT TRACKER PAGE (NO PERMISSION PROMPTS) -->
-        <section id="parent-dashboard-screen" class="view-screen hidden">
-            
-            <div class="view-banner banner-parent">
-                <span><i class="fa-solid fa-eye"></i> PARENT LIVE TRACKING PAGE</span>
-                <span id="tracker-status-badge" class="badge badge-danger">LIVE TRACKING ACTIVE</span>
-            </div>
-
-            <!-- Map View Container -->
-            <div class="glass-card map-card">
-                <div id="map"></div>
-            </div>
-
-            <!-- Parent Information Panel -->
-            <div class="glass-card">
-                <div class="user-details">
-                    <h3 id="user-name">Emergency User Location</h3>
-                    <p id="time-stamp">Last Updated: Just now</p>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Pendant Battery</span>
-                        <span id="stat-battery" class="stat-val">95%</span>
+                    <!-- 10-Second Ambient Audio Snippet Player -->
+                    <div id="audio-container" class="audio-player-card">
+                        <div class="audio-header">
+                            <i class="fa-solid fa-microphone-lines icon-rose"></i>
+                            <div>
+                                <h3>10-Second Ambient Audio Recording</h3>
+                                <p id="audio-timestamp">Recorded during 2-sec hold SOS activation</p>
+                            </div>
+                        </div>
+                        <audio id="audio-player" controls preload="metadata" style="width:100%; margin-top:10px;"></audio>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Movement Speed</span>
-                        <span id="stat-speed" class="stat-val">0 km/h</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">GPS Accuracy</span>
-                        <span id="stat-accuracy" class="stat-val">8 m</span>
+
+                    <div class="action-buttons-row">
+                        <a id="btn-call-police" href="tel:112" class="btn btn-danger-call"><i class="fa-solid fa-phone"></i> Call Emergency Police (112)</a>
+                        <button id="btn-recenter-map" class="btn btn-glass"><i class="fa-solid fa-crosshairs"></i> Center Map</button>
                     </div>
                 </div>
 
-                <!-- 10s Ambient Audio Snippet Player -->
-                <div id="audio-container" class="audio-section hidden">
-                    <h4>🎙️ 10-Second Ambient Audio Snippet</h4>
-                    <audio id="audio-player" controls preload="metadata"></audio>
-                </div>
+            </section>
 
-                <div class="action-row">
-                    <a id="btn-call-police" href="tel:112" class="btn btn-danger-call"><i class="fa-solid fa-phone"></i> Call Emergency Police (112)</a>
-                    <button id="btn-recenter-map" class="btn btn-glass"><i class="fa-solid fa-crosshairs"></i> Center Map</button>
-                </div>
-            </div>
-        </section>
-
+        </main>
     </div>
 
-    <!-- Fullscreen Incoming Call UI Modal (2 Presses -> Dad Calling) -->
+    <!-- Fullscreen Incoming Call UI Modal (2 Presses -> Fake Dad Call) -->
     <div id="fake-call-overlay" class="fake-call-modal hidden">
         <div class="call-glass-container">
             <div class="caller-profile">
