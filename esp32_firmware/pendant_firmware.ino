@@ -1,42 +1,48 @@
 /*
- * PURE SERIAL MONITOR WIRE TEST (NO LED, NO MOTOR, NO BUZZER)
+ * ESP32-S3 SUPER MINI - NATIVE USB CDC SERIAL TEST
  * 
- * Instructions:
- * 1. Upload code to ESP32-S3.
- * 2. Open Arduino IDE -> Tools -> Serial Monitor at 115200 baud.
- * 3. Take 1 wire connected to GND.
- * 4. Touch the other end to physical pins 1, 2, 3, 4, or 7.
- * 5. See which GPIO number prints on screen!
+ * ARDUINO IDE BOARD SETTINGS (CRITICAL):
+ * 1. Board: "ESP32S3 Dev Module"
+ * 2. USB CDC On Boot: "Enabled"   <-- (MUST BE ENABLED FOR USB-C SERIAL!)
+ * 3. Upload Mode: "UART0 / Hardware CDC"
  */
 
 #include <Arduino.h>
 
-const int testPins[] = {1, 2, 3, 4, 7};
-const int count = 5;
+const int testPins[] = {1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13};
+const int count = 11;
+
+unsigned long lastTimer = 0;
 
 void setup() {
+    // Initialize Native USB Serial
     Serial.begin(115200);
-    delay(1000);
 
-    Serial.println("\n=================================================");
-    Serial.println("  PURE WIRE TEST (NO LED / NO MOTOR / NO BUZZER) ");
-    Serial.println("=================================================");
+    // Wait up to 3 seconds for Serial Monitor connection
+    unsigned long startWait = millis();
+    while (!Serial && (millis() - startWait < 3000)) {
+        delay(10);
+    }
+
+    Serial.println("\n=======================================================");
+    Serial.println("  ESP32-S3 NATIVE USB CDC SERIAL MONITOR INITIALIZED   ");
+    Serial.println("=======================================================");
 
     for (int i = 0; i < count; i++) {
         pinMode(testPins[i], INPUT_PULLUP);
-        Serial.printf("Configured GPIO %d as INPUT_PULLUP\n", testPins[i]);
     }
 
-    Serial.println("\n[READY] Touch GND wire to physical pins 1, 2, 3, 4, or 7!");
+    Serial.println("[SYSTEM READY] Touch GND wire to pins 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, or 13!\n");
 }
 
 void loop() {
     yield();
 
+    // 1. Check for wire touch (LOW)
     for (int i = 0; i < count; i++) {
         int pin = testPins[i];
         if (digitalRead(pin) == LOW) {
-            Serial.printf("\n>>> SUCCESS! WIRE TOUCHED TO GROUND ON GPIO %d <<<\n", pin);
+            Serial.printf("\n>>> SUCCESS! WIRE TOUCH DETECTED ON GPIO %d <<<\n", pin);
 
             while (digitalRead(pin) == LOW) {
                 yield();
@@ -45,6 +51,12 @@ void loop() {
             Serial.printf("[RELEASED] GPIO %d disconnected from GND.\n\n", pin);
             delay(100);
         }
+    }
+
+    // 2. Heartbeat Ping every 2 seconds
+    if (millis() - lastTimer > 2000) {
+        lastTimer = millis();
+        Serial.println("[ESP32-S3 ALIVE] Heartbeat ping... Waiting for wire touch...");
     }
 
     delay(20);
