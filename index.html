@@ -2,10 +2,252 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=web_app/index.html">
-    <title>Redirecting to AURA Safety Pendant Web App...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AURA | Smart Safety System</title>
+    
+    <meta name="theme-color" content="#090D16">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Supabase & Leaflet JS Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <p>Redirecting to Safety Companion App... <a href="web_app/index.html">Click here if not redirected</a>.</p>
+
+    <div class="app-viewport">
+        
+        <!-- Header Bar -->
+        <header class="app-header">
+            <div class="brand-logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <h1>AURA SAFETY</h1>
+                    <span class="sub-brand">UNIFIED SAFETY SYSTEM</span>
+                </div>
+            </div>
+            <button id="btn-switch-role" class="role-switcher-btn">
+                <i class="fa-solid fa-arrows-rotate"></i> Switch View
+            </button>
+        </header>
+
+        <!-- 1. ROLE SELECTION SCREEN (Landed on first visit) -->
+        <section id="role-selector-screen" class="view-screen">
+            <div class="role-hero">
+                <h2>Welcome to AURA</h2>
+                <p>Select your access mode to continue</p>
+            </div>
+
+            <div class="role-cards-grid">
+                <div class="role-card" onclick="selectRole('user')">
+                    <div class="role-icon icon-rose"><i class="fa-solid fa-person-dress"></i></div>
+                    <h3>I am the Pendant User</h3>
+                    <p>Connect ESP32-S3 Pendant, Bluetooth controls, Fake Call UI & Emergency Gestures</p>
+                    <button class="btn btn-rose"><i class="fa-solid fa-shield"></i> Open User Dashboard</button>
+                </div>
+
+                <div class="role-card" onclick="selectRole('parent')">
+                    <div class="role-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+                    <h3>I am a Parent / Contact</h3>
+                    <p>Live Location GPS tracking map, movement speed, battery level & 10s audio player</p>
+                    <button class="btn btn-blue"><i class="fa-solid fa-location-dot"></i> Open Live Tracker</button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 2. WOMAN USER DASHBOARD VIEW -->
+        <section id="user-dashboard-screen" class="view-screen hidden">
+            
+            <div class="view-banner banner-user">
+                <span><i class="fa-solid fa-user-shield"></i> USER DASHBOARD</span>
+                <span id="ble-status-pill" class="status-pill status-disconnected">
+                    <span class="status-dot"></span> <span id="ble-status-text">DISCONNECTED</span>
+                </span>
+            </div>
+
+            <!-- BLE Connection Card -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-brands fa-bluetooth-b highlight-blue"></i>
+                        <div>
+                            <h3>Bluetooth Pendant Connection</h3>
+                            <p>Pair with ESP32-S3 Safety Pendant</p>
+                        </div>
+                    </div>
+                </div>
+                <button id="btn-connect-ble" class="btn btn-glow-primary">
+                    <i class="fa-solid fa-link"></i> Connect Safety Pendant
+                </button>
+            </div>
+
+            <!-- Contact Input Card -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-solid fa-address-book highlight-emerald"></i>
+                        <div>
+                            <h3>Emergency Contact Number</h3>
+                            <p>Phone number for SMS alerts & Auto-calls</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-form">
+                    <div class="input-field-wrapper">
+                        <i class="fa-solid fa-phone input-icon"></i>
+                        <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
+                    </div>
+                    <button id="btn-save-contact" class="btn btn-glass">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Contact
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gesture Reference & Simulator -->
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-solid fa-hand-pointer highlight-amber"></i>
+                        <div>
+                            <h3>Gestures & Quick Simulator</h3>
+                            <p>Test triggers directly on screen</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gesture-grid">
+                    <div class="gesture-card">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-blue">Double Click</span>
+                            <h4>Fake Call De-escalation</h4>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x02)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-amber">Triple Click</span>
+                            <h4>Stealth Silent SOS</h4>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x03)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-red">Hold 2 Seconds</span>
+                            <h4>Full Emergency SOS</h4>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x08)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-emerald">6 Rapid Clicks</span>
+                            <h4>Cancel SOS Sequence</h4>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x06)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 3. PARENT / FAMILY TRACKER DASHBOARD VIEW -->
+        <section id="parent-dashboard-screen" class="view-screen hidden">
+            
+            <div class="view-banner banner-parent">
+                <span><i class="fa-solid fa-eye"></i> PARENT / EMERGENCY TRACKER</span>
+                <span id="tracker-status-badge" class="badge badge-warning">CONNECTING...</span>
+            </div>
+
+            <!-- Map View Container -->
+            <div class="glass-card map-card">
+                <div id="map"></div>
+            </div>
+
+            <!-- Stats & Details Panel -->
+            <div class="glass-card">
+                <div class="user-details">
+                    <h3 id="user-name">Emergency User</h3>
+                    <p id="time-stamp">Last Updated: Just now</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Battery</span>
+                        <span id="stat-battery" class="stat-val">--%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Speed</span>
+                        <span id="stat-speed" class="stat-val">0 km/h</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">GPS Accuracy</span>
+                        <span id="stat-accuracy" class="stat-val">-- m</span>
+                    </div>
+                </div>
+
+                <!-- 10s Ambient Audio Snippet Player -->
+                <div id="audio-container" class="audio-section hidden">
+                    <h4>🎙️ 10-Second Ambient Audio Snippet</h4>
+                    <audio id="audio-player" controls preload="metadata"></audio>
+                </div>
+
+                <div class="action-row">
+                    <a id="btn-call-police" href="tel:112" class="btn btn-danger-call"><i class="fa-solid fa-phone"></i> Call Police (112)</a>
+                    <button id="btn-recenter-map" class="btn btn-glass"><i class="fa-solid fa-crosshairs"></i> Center Map</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Fullscreen Incoming Call UI Modal -->
+    <div id="fake-call-overlay" class="fake-call-modal hidden">
+        <div class="call-glass-container">
+            <div class="caller-profile">
+                <div class="avatar-circle"><i class="fa-solid fa-user"></i></div>
+                <h1 class="caller-title">Dad</h1>
+                <span id="call-status-text" class="call-subtitle">Mobile Incoming Call...</span>
+            </div>
+
+            <div class="call-controls-wrap">
+                <div class="call-button-col">
+                    <button id="btn-decline-call" class="action-circle btn-decline-call"><i class="fa-solid fa-phone-slash"></i></button>
+                    <span>Decline</span>
+                </div>
+
+                <div class="call-button-col">
+                    <button id="btn-accept-call" class="action-circle btn-accept-call"><i class="fa-solid fa-phone"></i></button>
+                    <span>Accept</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10-Second Cancel Grace Banner -->
+    <div id="grace-bar" class="grace-alert-banner hidden">
+        <div class="grace-alert-content">
+            <div class="timer-ring-container"><span id="grace-seconds" class="timer-number">10</span></div>
+            <div class="grace-text">
+                <div class="alert-title"><i class="fa-solid fa-triangle-exclamation"></i> SOS ALERT ACTIVATED</div>
+                <p>Press 6 times on pendant to cancel</p>
+            </div>
+        </div>
+        <button id="btn-cancel-grace" class="btn btn-cancel-sos">CANCEL SOS</button>
+    </div>
+
+    <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
+
+    <script src="app.js"></script>
 </body>
 </html>
