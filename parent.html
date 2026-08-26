@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA Safety – Parent Tracker</title>
+    <meta name="theme-color" content="#090D16">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="parent.css">
+</head>
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand-logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <h1>AURA SAFETY</h1>
+                    <span class="sub-brand">PARENT TRACKING DASHBOARD</span>
+                </div>
+            </div>
+            <a href="user.html" class="link-btn">
+                <i class="fa-solid fa-person-dress"></i> User View
+            </a>
+        </header>
+
+        <!-- SOS Alert Banner (shown when SOS is active) -->
+        <div id="sos-banner" class="sos-banner hidden">
+            <div class="sos-pulse-dot"></div>
+            <div class="sos-banner-text">
+                <strong>🚨 EMERGENCY SOS ACTIVE</strong>
+                <span id="sos-banner-time">Just Now</span>
+            </div>
+        </div>
+
+        <!-- Status Row -->
+        <div class="banner banner-blue">
+            <span><i class="fa-solid fa-satellite-dish"></i> LIVE MONITORING</span>
+            <span id="tracker-status" class="status-pill status-watching">
+                <span class="status-dot"></span>
+                <span id="tracker-status-text">WATCHING</span>
+            </span>
+        </div>
+
+        <!-- Live Map -->
+        <div class="glass-card map-card">
+            <div id="map"></div>
+            <button id="btn-recenter" class="recenter-btn" title="Center Map">
+                <i class="fa-solid fa-crosshairs"></i>
+            </button>
+        </div>
+
+        <!-- Incident Details Grid -->
+        <div class="glass-card">
+            <div class="card-title-group">
+                <i class="fa-solid fa-chart-line icon-blue fa-xl"></i>
+                <div>
+                    <h2>Live Telemetry</h2>
+                    <p id="last-updated-text">Waiting for SOS event...</p>
+                </div>
+            </div>
+
+            <div class="details-grid">
+                <div class="detail-box">
+                    <span class="detail-label"><i class="fa-solid fa-circle-dot"></i> Status</span>
+                    <span id="d-status" class="detail-val text-emerald">NORMAL</span>
+                </div>
+                <div class="detail-box">
+                    <span class="detail-label"><i class="fa-solid fa-battery-three-quarters"></i> Battery</span>
+                    <span id="d-battery" class="detail-val text-emerald">95%</span>
+                </div>
+                <div class="detail-box">
+                    <span class="detail-label"><i class="fa-solid fa-gauge-high"></i> Speed</span>
+                    <span id="d-speed" class="detail-val text-blue">-- km/h</span>
+                </div>
+                <div class="detail-box">
+                    <span class="detail-label"><i class="fa-solid fa-bullseye"></i> GPS Accuracy</span>
+                    <span id="d-accuracy" class="detail-val text-amber">-- m</span>
+                </div>
+                <div class="detail-box full-width">
+                    <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Coordinates</span>
+                    <span id="d-coords" class="detail-val text-blue" style="font-size:.8rem;">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10-Second Audio Recording Player -->
+        <div class="glass-card">
+            <div class="card-title-group">
+                <i class="fa-solid fa-microphone-lines icon-rose fa-xl"></i>
+                <div>
+                    <h2>10-Second Ambient Recording</h2>
+                    <p id="audio-timestamp-text">Captured during SOS activation</p>
+                </div>
+            </div>
+            <div id="audio-placeholder" class="audio-placeholder">
+                <i class="fa-solid fa-waveform-lines fa-2x" style="color:var(--muted)"></i>
+                <p>Audio will appear when SOS is triggered</p>
+            </div>
+            <div id="audio-container" class="hidden">
+                <audio id="audio-player" controls preload="metadata" style="width:100%;"></audio>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-row">
+            <a href="tel:112" class="btn btn-danger"><i class="fa-solid fa-phone"></i> Call Police (112)</a>
+            <a id="btn-open-maps" href="#" target="_blank" class="btn btn-glass"><i class="fa-solid fa-map"></i> Open Maps</a>
+        </div>
+
+    </div>
+
+    <script src="parent.js"></script>
+</body>
+</html>

@@ -3,210 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA | Smart Safety System</title>
-    
+    <title>AURA Safety Pendant</title>
     <meta name="theme-color" content="#090D16">
-    
-    <!-- Google Fonts & Font Awesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root { --bg: #090d16; --card: rgba(19,27,46,.88); --border: rgba(255,255,255,.10); }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            min-height: 100vh; background: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(56,189,248,.13) 0, transparent 55%),
+                radial-gradient(at 100% 100%, rgba(244,63,94,.12) 0, transparent 55%);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Plus Jakarta Sans', sans-serif; color: #f8fafc; padding: 20px;
+        }
+        .hero {
+            text-align: center;
+            background: var(--card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 24px;
+            padding: 48px 36px; max-width: 420px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+        }
+        .logo-wrap {
+            width: 80px; height: 80px; border-radius: 22px;
+            background: linear-gradient(135deg,#0284c7,#2563eb);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem; color: #fff; margin: 0 auto 20px;
+            box-shadow: 0 0 30px rgba(37,99,235,.4);
+        }
+        h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+        .tagline { font-size: .85rem; color: #94a3b8; margin-bottom: 36px; }
+        .btn-group { display: flex; flex-direction: column; gap: 14px; }
+        .big-btn {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            padding: 18px 20px; border-radius: 16px; border: none;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            text-decoration: none; font-family: inherit; transition: transform .2s;
+        }
+        .big-btn:hover { transform: translateY(-3px); }
+        .btn-user {
+            background: linear-gradient(135deg,#0284c7,#2563eb); color: #fff;
+            box-shadow: 0 0 24px rgba(56,189,248,.35);
+        }
+        .btn-parent {
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #f8fafc;
+        }
+        .btn-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: rgba(255,255,255,.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .btn-inner { text-align: left; }
+        .btn-title { display: block; font-size: 1rem; font-weight: 800; }
+        .btn-sub { display: block; font-size: .72rem; opacity: .75; margin-top: 1px; }
+        .divider { text-align: center; font-size: .7rem; color: #475569; font-weight: 700; }
+        .footer { margin-top: 28px; font-size: .7rem; color: #475569; }
+    </style>
 </head>
 <body>
+    <div class="hero">
+        <div class="logo-wrap"><i class="fa-solid fa-shield-halved"></i></div>
+        <h1>AURA SAFETY</h1>
+        <p class="tagline">Women's Safety Pendant – Select your dashboard</p>
 
-    <div class="app-wrapper">
-        
-        <!-- Header & Top Navigation Bar -->
-        <header class="app-header">
-            <div class="brand-logo">
-                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                <div class="brand-text">
-                    <h1>AURA SAFETY</h1>
-                    <span class="sub-brand">ESP32-S3 PENDANT SYSTEM</span>
+        <div class="btn-group">
+            <a href="user.html" class="big-btn btn-user">
+                <div class="btn-icon"><i class="fa-solid fa-person-dress"></i></div>
+                <div class="btn-inner">
+                    <span class="btn-title">Woman User Dashboard</span>
+                    <span class="btn-sub">Pair pendant · Fake call · Emergency SOS</span>
                 </div>
-            </div>
-            
-            <nav class="top-nav-tabs">
-                <button id="tab-user" class="nav-tab active-tab" onclick="switchTab('user')">
-                    <i class="fa-solid fa-person-dress"></i> Woman User Page
-                </button>
-                <button id="tab-parent" class="nav-tab" onclick="switchTab('parent')">
-                    <i class="fa-solid fa-users"></i> Parents Tracking Page
-                </button>
-            </nav>
-        </header>
+            </a>
 
-        <main class="content-container">
+            <div class="divider">— OR —</div>
 
-            <!-- ========================================================== -->
-            <!-- 1. WOMAN USER PAGE -->
-            <!-- ========================================================== -->
-            <section id="user-page" class="page-section">
-                
-                <div class="banner banner-rose">
-                    <span><i class="fa-solid fa-user-shield"></i> WOMAN USER DASHBOARD</span>
-                    <span id="ble-status-pill" class="status-pill status-disconnected">
-                        <span class="status-dot"></span> <span id="ble-status-text">DISCONNECTED</span>
-                    </span>
+            <a href="parent.html" class="big-btn btn-parent">
+                <div class="btn-icon"><i class="fa-solid fa-users"></i></div>
+                <div class="btn-inner">
+                    <span class="btn-title">Parent Tracking Dashboard</span>
+                    <span class="btn-sub">Live GPS map · SOS alerts · Audio recordings</span>
                 </div>
-
-                <!-- Bluetooth Pairing Card -->
-                <div class="glass-card highlight-card">
-                    <div class="card-title-group">
-                        <i class="fa-brands fa-bluetooth-b icon-blue"></i>
-                        <div>
-                            <h2>Pair ESP32-S3 Safety Pendant</h2>
-                            <p>Connect your Bluetooth 2-pin push button pendant</p>
-                        </div>
-                    </div>
-                    <button id="btn-connect-ble" class="btn btn-primary-glow btn-large">
-                        <i class="fa-solid fa-wifi"></i> PAIR ESP32-S3 PENDANT (BLUETOOTH)
-                    </button>
-                </div>
-
-                <!-- Software Simulator Buttons -->
-                <div class="glass-card">
-                    <div class="card-title-group">
-                        <i class="fa-solid fa-flask icon-amber"></i>
-                        <div>
-                            <h2>Instant Trigger Simulator</h2>
-                            <p>Click below to test instant call & SMS dispatch</p>
-                        </div>
-                    </div>
-
-                    <div class="simulator-actions-grid">
-                        <button class="btn-sim-card sim-blue" onclick="triggerGesture(0x02)">
-                            <div class="sim-title"><i class="fa-solid fa-phone-volume"></i> Test 2 Presses (Fake Dad Call)</div>
-                            <span class="sim-desc">Plays ringtone & shows "Dad Calling" incoming screen</span>
-                        </button>
-
-                        <button class="btn-sim-card sim-red" onclick="triggerGesture(0x08)">
-                            <div class="sim-title"><i class="fa-solid fa-triangle-exclamation"></i> Test 2 Sec Hold (INSTANT EMERGENCY SOS)</div>
-                            <span class="sim-desc">Instant Automated Call & SMS + Live GPS Map Stream</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Emergency Contact Number Setup -->
-                <div class="glass-card">
-                    <div class="card-title-group">
-                        <i class="fa-solid fa-address-book icon-emerald"></i>
-                        <div>
-                            <h2>Parent / Emergency Phone Number Setup</h2>
-                            <p>Primary contact for automated calls & SMS alerts</p>
-                        </div>
-                    </div>
-                    <div class="input-form">
-                        <div class="input-field-wrapper">
-                            <i class="fa-solid fa-phone input-icon"></i>
-                            <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
-                        </div>
-                        <button id="btn-save-contact" class="btn btn-glass">
-                            <i class="fa-solid fa-floppy-disk"></i> Save Emergency Contact
-                        </button>
-                    </div>
-                </div>
-
-            </section>
-
-
-            <!-- ========================================================== -->
-            <!-- 2. PARENTS TRACKING PAGE (ZERO PERMISSIONS REQUIRED) -->
-            <!-- ========================================================== -->
-            <section id="parent-page" class="page-section hidden">
-                
-                <div class="banner banner-blue">
-                    <span><i class="fa-solid fa-eye"></i> PARENT LIVE TRACKING PAGE</span>
-                    <span id="tracker-status-badge" class="badge badge-danger">LIVE MONITORING ACTIVE</span>
-                </div>
-
-                <!-- Live Map Card -->
-                <div class="glass-card map-wrapper-card">
-                    <div id="map"></div>
-                </div>
-
-                <!-- Incident Details & 10s Audio Player -->
-                <div class="glass-card">
-                    <div class="card-title-group">
-                        <i class="fa-solid fa-circle-info icon-blue"></i>
-                        <div>
-                            <h2>Live Tracking & Incident Details</h2>
-                            <p>Real-time telemetry updated on 2-sec hold button press</p>
-                        </div>
-                    </div>
-
-                    <div class="details-grid">
-                        <div class="detail-box">
-                            <span class="detail-label">Status</span>
-                            <span id="detail-status" class="detail-val text-emerald">NORMAL</span>
-                        </div>
-                        <div class="detail-box">
-                            <span class="detail-label">Pendant Battery</span>
-                            <span id="detail-battery" class="detail-val text-emerald">95%</span>
-                        </div>
-                        <div class="detail-box">
-                            <span class="detail-label">Movement Speed</span>
-                            <span id="detail-speed" class="detail-val text-blue">0 km/h</span>
-                        </div>
-                        <div class="detail-box">
-                            <span class="detail-label">GPS Accuracy</span>
-                            <span id="detail-accuracy" class="detail-val text-amber">8 meters</span>
-                        </div>
-                    </div>
-
-                    <!-- 10-Second Ambient Audio Snippet Player -->
-                    <div id="audio-container" class="audio-player-card">
-                        <div class="audio-header">
-                            <i class="fa-solid fa-microphone-lines icon-rose"></i>
-                            <div>
-                                <h3>10-Second Ambient Audio Recording</h3>
-                                <p id="audio-timestamp">Recorded during 2-sec hold SOS activation</p>
-                            </div>
-                        </div>
-                        <audio id="audio-player" controls preload="metadata" style="width:100%; margin-top:10px;"></audio>
-                    </div>
-
-                    <div class="action-buttons-row">
-                        <a id="btn-call-police" href="tel:112" class="btn btn-danger-call"><i class="fa-solid fa-phone"></i> Call Emergency Police (112)</a>
-                        <button id="btn-recenter-map" class="btn btn-glass"><i class="fa-solid fa-crosshairs"></i> Center Map</button>
-                    </div>
-                </div>
-
-            </section>
-
-        </main>
-    </div>
-
-    <!-- Fullscreen Incoming Call UI Modal (2 Presses -> Fake Dad Call) -->
-    <div id="fake-call-overlay" class="fake-call-modal hidden">
-        <div class="call-glass-container">
-            <div class="caller-profile">
-                <div class="avatar-circle"><i class="fa-solid fa-user"></i></div>
-                <h1 class="caller-title">Dad</h1>
-                <span id="call-status-text" class="call-subtitle">Mobile Incoming Call...</span>
-            </div>
-
-            <div class="call-controls-wrap">
-                <div class="call-button-col">
-                    <button id="btn-decline-call" class="action-circle btn-decline-call"><i class="fa-solid fa-phone-slash"></i></button>
-                    <span>Decline</span>
-                </div>
-
-                <div class="call-button-col">
-                    <button id="btn-accept-call" class="action-circle btn-accept-call"><i class="fa-solid fa-phone"></i></button>
-                    <span>Accept</span>
-                </div>
-            </div>
+            </a>
         </div>
+
+        <div class="footer">SARMA Project · ESP32-S3 Wearable Pendant v2.0</div>
     </div>
-
-    <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
-
-    <script src="app.js"></script>
 </body>
 </html>

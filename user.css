@@ -1,0 +1,284 @@
+/* =============================================
+   AURA – USER DASHBOARD STYLES
+   ============================================= */
+
+:root {
+    --bg: #090d16;
+    --card: rgba(19, 27, 46, 0.82);
+    --border: rgba(255,255,255,0.10);
+    --blue: #38bdf8;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%; min-height: 100vh; background: var(--bg);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(56,189,248,.13) 0, transparent 55%),
+        radial-gradient(at 100% 100%, rgba(244,63,94,.12) 0, transparent 55%);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden; overflow-y: auto;
+}
+
+body { display: flex; justify-content: center; padding: 16px; }
+
+.app-wrapper {
+    width: 100%; max-width: 480px;
+    display: flex; flex-direction: column; gap: 18px;
+    padding-bottom: 50px;
+}
+
+/* Header */
+.app-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    background: var(--card); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+
+.brand-logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg,#0284c7,#2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; color: #fff;
+    box-shadow: 0 0 14px rgba(37,99,235,.4);
+}
+.brand-text h1 { font-size: 1.05rem; font-weight: 800; }
+.sub-brand { font-size: 0.6rem; color: var(--muted); font-weight: 600; letter-spacing: .5px; }
+
+.link-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 10px;
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    color: var(--text); font-size: .78rem; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+    transition: background .2s;
+}
+.link-btn:hover { background: rgba(255,255,255,.12); }
+
+/* Banner */
+.banner {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 16px; border-radius: 13px;
+    font-size: .78rem; font-weight: 800;
+}
+.banner-rose { background: rgba(244,63,94,.14); border: 1px solid rgba(244,63,94,.3); color: #fda4af; }
+
+/* Status Pill */
+.status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: .68rem; font-weight: 800;
+}
+.status-disconnected { background: rgba(100,116,139,.2); color: #cbd5e1; }
+.status-connected { background: rgba(16,185,129,.2); color: #34d399; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* Cards */
+.glass-card {
+    background: var(--card); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+.highlight-card { border-color: rgba(56,189,248,.28); background: linear-gradient(135deg,rgba(19,27,46,.92),rgba(14,165,233,.09)); }
+
+.card-title-group { display: flex; align-items: center; gap: 12px; }
+.card-title-group h2 { font-size: .97rem; font-weight: 800; }
+.card-title-group p { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.icon-blue { color: var(--blue); }
+.icon-emerald { color: var(--emerald); }
+.icon-amber { color: var(--amber); }
+
+/* BLE Connected Info */
+.ble-info { border-radius: 12px; background: rgba(9,13,22,.6); border: 1px solid var(--border); padding: 12px 14px; }
+.ble-device-row { display: flex; align-items: center; gap: 12px; }
+.ble-device-name { font-size: .9rem; font-weight: 700; }
+.ble-device-sub { font-size: .68rem; color: var(--muted); }
+.ble-signal-bars { display: flex; align-items: flex-end; gap: 3px; margin-left: auto; }
+.bar { width: 5px; border-radius: 2px; background: var(--emerald); display: block; }
+.b1 { height: 8px; }
+.b2 { height: 13px; }
+.b3 { height: 18px; }
+
+/* Buttons */
+.btn {
+    width: 100%; padding: 13px 18px; border-radius: 12px; border: none;
+    font-size: .92rem; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    transition: all .2s; font-family: inherit;
+}
+.btn-primary-glow {
+    background: linear-gradient(135deg,#0284c7,#2563eb); color: #fff;
+    box-shadow: 0 0 22px rgba(56,189,248,.38);
+}
+.btn-primary-glow:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(56,189,248,.55); }
+.btn-glass { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--text); }
+.btn-glass:hover { background: rgba(255,255,255,.11); }
+
+/* Inputs */
+.input-form { display: flex; flex-direction: column; gap: 10px; }
+.input-field-wrapper { position: relative; display: flex; align-items: center; }
+.input-icon { position: absolute; left: 14px; color: var(--muted); }
+.input-field-wrapper input {
+    width: 100%; padding: 12px 14px 12px 40px;
+    background: rgba(9,13,22,.65); border: 1px solid var(--border);
+    border-radius: 11px; color: var(--text); font-size: .92rem; font-family: inherit;
+    outline: none;
+}
+.input-field-wrapper input:focus { border-color: var(--blue); }
+
+/* Gesture List */
+.gesture-list { display: flex; flex-direction: column; gap: 10px; }
+.gesture-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 13px;
+    background: rgba(9,13,22,.55); border: 1px solid rgba(255,255,255,.05);
+}
+.gesture-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.g-blue { background: rgba(56,189,248,.15); color: var(--blue); }
+.g-red  { background: rgba(244,63,94,.15); color: var(--rose); }
+.gesture-desc { flex: 1; }
+.g-label { font-size: .85rem; font-weight: 700; }
+.g-sub   { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+.g-badge { padding: 3px 8px; border-radius: 6px; font-size: .62rem; font-weight: 800; white-space: nowrap; }
+.badge-blue { background: rgba(56,189,248,.18); color: var(--blue); }
+.badge-red  { background: rgba(244,63,94,.18); color: var(--rose); }
+
+/* =============================================
+   GOOGLE DIALER STYLE INCOMING CALL SCREEN
+   ============================================= */
+.call-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; flex-direction: column;
+    background: transparent;
+}
+
+.call-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+}
+
+.call-body {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    height: 100%; padding: 0 24px 40px;
+    justify-content: space-between;
+}
+
+.call-time {
+    width: 100%;
+    text-align: center;
+    font-size: .85rem;
+    color: rgba(255,255,255,.55);
+    font-weight: 500;
+    padding-top: 20px;
+}
+
+.call-caller-info {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding-top: 30px;
+}
+
+.call-avatar {
+    position: relative;
+    width: 110px; height: 110px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px;
+}
+
+.call-avatar-inner {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; font-weight: 800; color: #fff;
+    position: relative; z-index: 2;
+    box-shadow: 0 0 30px rgba(56,189,248,.35);
+}
+
+.call-avatar-ring {
+    position: absolute; border-radius: 50%;
+    border: 2px solid rgba(56,189,248,.25);
+    animation: callRing 2s ease-out infinite;
+}
+.ring1 { width: 140px; height: 140px; animation-delay: 0s; }
+.ring2 { width: 175px; height: 175px; animation-delay: .7s; }
+
+@keyframes callRing {
+    0%   { transform: scale(.85); opacity: .9; }
+    100% { transform: scale(1.3); opacity: 0; }
+}
+
+.call-name  { font-size: 2.2rem; font-weight: 800; color: #fff; }
+.call-number { font-size: 1rem; color: rgba(255,255,255,.65); font-weight: 500; }
+.call-label  { font-size: .9rem; color: rgba(255,255,255,.5); font-style: italic; }
+
+/* Quick actions row (like real dialer) */
+.call-quick-actions {
+    display: flex; justify-content: space-around;
+    width: 100%; max-width: 340px;
+}
+.quick-action {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-size: .72rem; color: rgba(255,255,255,.5);
+}
+.qa-icon {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: rgba(255,255,255,.5);
+}
+
+/* Accept / Decline buttons */
+.call-action-row {
+    display: flex; justify-content: space-around;
+    width: 100%; max-width: 300px;
+}
+.call-btn-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.call-btn-circle {
+    width: 72px; height: 72px; border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: #fff; cursor: pointer;
+    transition: transform .15s;
+}
+.call-btn-circle:active { transform: scale(.92); }
+.btn-decline { background: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,.5); }
+.btn-accept  { background: #10b981; box-shadow: 0 0 20px rgba(16,185,129,.5); animation: acceptPulse 1.5s infinite; }
+
+@keyframes acceptPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.7); }
+    70%  { box-shadow: 0 0 0 18px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.call-btn-label { font-size: .8rem; color: rgba(255,255,255,.7); font-weight: 600; }
+
+/* Toast */
+.toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    width: 90%; max-width: 440px;
+    padding: 13px 18px; border-radius: 14px;
+    background: rgba(19,27,46,.95); border: 1px solid var(--blue);
+    backdrop-filter: blur(14px); z-index: 10000;
+    display: flex; align-items: center; gap: 10px;
+    font-size: .85rem; font-weight: 600;
+    animation: toastSlide .3s ease; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.toast-red  { border-color: #ef4444; background: rgba(127,29,29,.92); }
+.toast-green { border-color: var(--emerald); }
+@keyframes toastSlide {
+    from { transform: translate(-50%,-20px); opacity: 0; }
+    to   { transform: translate(-50%,0); opacity: 1; }
+}
+
+.hidden { display: none !important; }

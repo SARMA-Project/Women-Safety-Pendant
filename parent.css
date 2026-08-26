@@ -1,0 +1,181 @@
+/* =============================================
+   AURA – PARENT TRACKING DASHBOARD STYLES
+   ============================================= */
+
+:root {
+    --bg: #090d16;
+    --card: rgba(19, 27, 46, 0.82);
+    --border: rgba(255,255,255,0.10);
+    --blue: #38bdf8;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%; min-height: 100vh; background: var(--bg);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(56,189,248,.13) 0, transparent 55%),
+        radial-gradient(at 100% 80%, rgba(244,63,94,.12) 0, transparent 55%);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden; overflow-y: auto;
+}
+
+body { display: flex; justify-content: center; padding: 16px; }
+
+.app-wrapper {
+    width: 100%; max-width: 520px;
+    display: flex; flex-direction: column; gap: 16px;
+    padding-bottom: 50px;
+}
+
+/* Header */
+.app-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    background: var(--card); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+
+.brand-logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg,#0284c7,#2563eb);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; color: #fff;
+}
+.brand-text h1 { font-size: 1.05rem; font-weight: 800; }
+.sub-brand { font-size: 0.6rem; color: var(--muted); font-weight: 600; }
+
+.link-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 10px;
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    color: var(--text); font-size: .78rem; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+}
+.link-btn:hover { background: rgba(255,255,255,.12); }
+
+/* SOS Alert Banner */
+.sos-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(127,29,29,.95), rgba(153,27,27,.95));
+    border: 2px solid #ef4444;
+    box-shadow: 0 0 25px rgba(239,68,68,.4);
+    animation: sosGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes sosGlow {
+    from { box-shadow: 0 0 15px rgba(239,68,68,.4); }
+    to   { box-shadow: 0 0 35px rgba(239,68,68,.7); }
+}
+
+.sos-pulse-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #ef4444; flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(239,68,68,.7);
+    animation: sosPulse 1s infinite;
+}
+@keyframes sosPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+.sos-banner-text { display: flex; flex-direction: column; }
+.sos-banner-text strong { font-size: .9rem; color: #fca5a5; }
+.sos-banner-text span { font-size: .72rem; color: rgba(255,255,255,.7); }
+
+/* Status Banner */
+.banner {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 16px; border-radius: 13px; font-size: .78rem; font-weight: 800;
+}
+.banner-blue { background: rgba(56,189,248,.14); border: 1px solid rgba(56,189,248,.3); color: #7dd3fc; }
+
+.status-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: .68rem; font-weight: 800; }
+.status-watching { background: rgba(56,189,248,.2); color: var(--blue); }
+.status-emergency { background: rgba(244,63,94,.2); color: var(--rose); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: dotPulse 1.5s infinite; }
+@keyframes dotPulse {
+    0%,100% { opacity: 1; } 50% { opacity: .4; }
+}
+
+/* Cards */
+.glass-card {
+    background: var(--card); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 20px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+
+.card-title-group { display: flex; align-items: center; gap: 12px; }
+.card-title-group h2 { font-size: .97rem; font-weight: 800; }
+.card-title-group p { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.icon-blue { color: var(--blue); }
+.icon-rose { color: var(--rose); }
+
+/* Map */
+.map-card { padding: 0; overflow: hidden; height: 320px; position: relative; }
+#map { width: 100%; height: 100%; border-radius: 20px; }
+.recenter-btn {
+    position: absolute; bottom: 14px; right: 14px; z-index: 500;
+    width: 40px; height: 40px; border-radius: 10px; border: none;
+    background: rgba(9,13,22,.85); backdrop-filter: blur(8px);
+    color: var(--blue); font-size: 1rem; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+/* Details Grid */
+.details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.detail-box {
+    background: rgba(9,13,22,.6); padding: 12px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.05);
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.full-width { grid-column: 1 / -1; }
+.detail-label { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.detail-val { font-size: 1rem; font-weight: 800; margin-top: 3px; }
+.text-emerald { color: var(--emerald); }
+.text-blue    { color: var(--blue); }
+.text-amber   { color: var(--amber); }
+.text-red     { color: var(--rose); }
+
+/* Audio */
+.audio-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 20px; border-radius: 12px;
+    background: rgba(9,13,22,.5); border: 1px dashed var(--border);
+    color: var(--muted); font-size: .8rem; text-align: center;
+}
+
+/* Action Row */
+.action-row { display: flex; gap: 10px; }
+.btn {
+    flex: 1; padding: 13px 16px; border-radius: 12px; border: none;
+    font-size: .88rem; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    text-decoration: none; font-family: inherit; transition: all .2s;
+}
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-glass { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); }
+.btn-glass:hover { background: rgba(255,255,255,.12); }
+
+/* Leaflet custom pin */
+.custom-sos-pin {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #ef4444; border: 3px solid #fff;
+    box-shadow: 0 0 12px rgba(239,68,68,.8);
+    animation: sosPinPulse 1.2s infinite;
+}
+@keyframes sosPinPulse {
+    0%,100% { box-shadow: 0 0 8px rgba(239,68,68,.8); }
+    50%      { box-shadow: 0 0 22px rgba(239,68,68,1); }
+}
+
+.hidden { display: none !important; }
