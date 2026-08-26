@@ -7,10 +7,9 @@ let userMarker = null;
 let accuracyCircle = null;
 let lastLat = null, lastLng = null;
 
-// Emergency Audio Siren Engine (Web Audio API for 100% instant reliability)
+// Emergency Audio Siren Engine (Web Audio API)
 let audioCtx = null;
-let sirenOsc1 = null;
-let sirenOsc2 = null;
+let sirenOsc = null;
 let sirenGain = null;
 let sirenInterval = null;
 let isSirenPlaying = false;
@@ -20,25 +19,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initMap();
 
-    // Listen for SOS events & Audio from user page across all tabs
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'aura_sos_event') parseSOSEvent(e.newValue);
-        if (e.key === 'aura_audio_base64') loadAudio(e.newValue);
-    });
-
-    // Check on startup if SOS is already active
-    const existingSOS = localStorage.getItem('aura_sos_event');
-    if (existingSOS) parseSOSEvent(existingSOS);
-
+    // 1. Check existing telemetry & audio on load WITHOUT sounding siren
     const existingAudio = localStorage.getItem('aura_audio_base64');
     if (existingAudio) loadAudio(existingAudio);
 
-    document.getElementById('btn-recenter').addEventListener('click', recenterMap);
+    const existingSOS = localStorage.getItem('aura_sos_event');
+    if (existingSOS) displaySOSTelemetry(JSON.parse(existingSOS));
 
-    // Mute/Silence alarm button (Only allows turning OFF, cannot turn ON manually)
+    // 2. Listen for fresh live SOS events & audio from user page across all tabs
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'aura_sos_event' && e.newValue) {
+            handleIncomingLiveSOS(JSON.parse(e.newValue));
+        }
+        if (e.key === 'aura_audio_base64' && e.newValue) {
+            loadAudio(e.newValue);
+        }
+    });
+
+    document.getElementById('btn-recenter').addEventListener('click', recenterMap);
     document.getElementById('btn-silence-alarm').addEventListener('click', silenceAlarm);
 
-    // Enable audio context on any user interaction if blocked by browser autoplay
+    // Audio context unlock on click
     document.addEventListener('click', () => {
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume();
@@ -59,18 +60,18 @@ function startEmergencySiren() {
         sirenGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
         sirenGain.connect(audioCtx.destination);
 
-        sirenOsc1 = audioCtx.createOscillator();
-        sirenOsc1.type = 'sawtooth';
-        sirenOsc1.connect(sirenGain);
-        sirenOsc1.start();
+        sirenOsc = audioCtx.createOscillator();
+        sirenOsc.type = 'sawtooth';
+        sirenOsc.connect(sirenGain);
+        sirenOsc.start();
 
         let highPitch = false;
-        sirenOsc1.frequency.setValueAtTime(800, audioCtx.currentTime);
+        sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
 
         sirenInterval = setInterval(() => {
-            if (!audioCtx || !sirenOsc1) return;
+            if (!audioCtx || !sirenOsc) return;
             const targetFreq = highPitch ? 650 : 960;
-            sirenOsc1.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
+            sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
             highPitch = !highPitch;
         }, 400);
 
@@ -85,7 +86,7 @@ function silenceAlarm() {
     if (isSirenPlaying) {
         try {
             if (sirenInterval) clearInterval(sirenInterval);
-            if (sirenOsc1) { sirenOsc1.stop(); sirenOsc1.disconnect(); }
+            if (sirenOsc) { sirenOsc.stop(); sirenOsc.disconnect(); }
             if (audioCtx) { audioCtx.close(); }
         } catch (e) {}
         isSirenPlaying = false;
@@ -104,7 +105,6 @@ function initMap() {
     map = L.map('map', { zoomControl: false, attributionControl: false })
            .setView([20.5937, 78.9629], 5);
 
-    // Light Carto Voyager tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         subdomains: 'abcd'
@@ -150,22 +150,22 @@ function recenterMap() {
     if (lastLat !== null) map.setView([lastLat, lastLng], 16, { animate: true });
 }
 
-// ─── SOS Event Parser ────────────────────────────────────────
-function parseSOSEvent(raw) {
+// ─── Live SOS Event Handler ──────────────────────────────────
+function handleIncomingLiveSOS(data) {
+    displaySOSTelemetry(data);
+    // ONLY sound siren on live SOS triggers
+    startEmergencySiren();
+}
+
+function displaySOSTelemetry(data) {
     try {
-        if (!raw) return;
-        const data = JSON.parse(raw);
+        if (!data) return;
         const { lat, lng, accuracy, speed, timestamp } = data;
 
-        // Show SOS Alert Banner
         document.getElementById('sos-banner').classList.remove('hidden');
         const t = new Date(timestamp);
         document.getElementById('sos-banner-time').textContent = 'Triggered at ' + t.toLocaleTimeString();
 
-        // Automatically START emergency siren alarm!
-        startEmergencySiren();
-
-        // Update telemetry
         document.getElementById('d-status').textContent = '🚨 SOS ACTIVE';
         document.getElementById('d-status').className = 'detail-val text-red';
         document.getElementById('d-speed').textContent = (speed * 3.6).toFixed(1) + ' km/h';
@@ -173,19 +173,15 @@ function parseSOSEvent(raw) {
         document.getElementById('d-coords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         document.getElementById('last-updated-text').textContent = 'Live update: ' + t.toLocaleTimeString();
 
-        // Update map pin
         updateMapPin(lat, lng);
-
-        // Update "Open Maps" link
         document.getElementById('btn-open-maps').href = `https://maps.google.com/?q=${lat},${lng}`;
 
-        // Status pill
         const pill = document.getElementById('tracker-status');
         const pillText = document.getElementById('tracker-status-text');
         pill.className = 'status-pill status-emergency';
         pillText.textContent = 'EMERGENCY';
 
-    } catch(e) { console.error('[Parent] Failed to parse SOS event:', e); }
+    } catch(e) { console.error('[Parent] Failed to display telemetry:', e); }
 }
 
 // ─── Audio Recording Player ──────────────────────────────────

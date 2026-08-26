@@ -3,90 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aura Safety Pendant</title>
+    <title>Aura Safety – Smart Safety Pendant</title>
     <meta name="theme-color" content="#FFF0F7">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #FFF0F7 0%, #F3E8FF 100%);
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'Plus Jakarta Sans', sans-serif; color: #2D1B4E; padding: 20px;
-        }
-        .hero {
-            text-align: center;
-            background: #fff;
-            border: 1.5px solid #F9A8D4;
-            border-radius: 28px;
-            padding: 44px 36px; max-width: 420px; width: 100%;
-            box-shadow: 0 20px 60px rgba(233,30,140,.12);
-        }
-        .logo-img {
-            width: 140px; height: auto; margin: 0 auto 10px;
-            display: block;
-        }
-        .tagline {
-            font-size: .82rem; color: #9333EA;
-            font-weight: 700; letter-spacing: .5px;
-            margin-bottom: 32px;
-        }
-        .btn-group { display: flex; flex-direction: column; gap: 12px; }
-        .big-btn {
-            display: flex; align-items: center; gap: 14px;
-            padding: 16px 20px; border-radius: 16px; border: none;
-            font-size: .95rem; font-weight: 700; cursor: pointer;
-            text-decoration: none; font-family: inherit;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .big-btn:hover { transform: translateY(-3px); }
-        .btn-user {
-            background: linear-gradient(135deg,#E91E8C,#9333EA); color: #fff;
-            box-shadow: 0 8px 24px rgba(233,30,140,.35);
-        }
-        .btn-parent {
-            background: #F9F5FF; border: 1.5px solid #DDD6FE; color: #4C1D95;
-            box-shadow: 0 4px 14px rgba(147,51,234,.1);
-        }
-        .btn-icon {
-            width: 44px; height: 44px; border-radius: 12px;
-            background: rgba(255,255,255,.25);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; flex-shrink: 0;
-        }
-        .btn-parent .btn-icon { background: rgba(147,51,234,.12); color: #7C3AED; }
-        .btn-inner { text-align: left; }
-        .btn-title { display: block; font-size: .97rem; font-weight: 800; }
-        .btn-sub   { display: block; font-size: .7rem; opacity: .8; margin-top: 2px; }
-        .divider { text-align: center; font-size: .7rem; color: #C4B5FD; font-weight: 700; }
-        .footer { margin-top: 24px; font-size: .68rem; color: #C4B5FD; font-weight: 600; }
-    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="hero">
-        <img src="assets/logo.png" class="logo-img" alt="Aura Safety Logo">
-        <p class="tagline">BE SAFE. BE STRONG. BE YOU.</p>
 
-        <div class="btn-group">
-            <a href="user.html" class="big-btn btn-user">
-                <div class="btn-icon"><i class="fa-solid fa-person-dress"></i></div>
-                <div class="btn-inner">
-                    <span class="btn-title">Woman User Dashboard</span>
-                    <span class="btn-sub">Pair pendant · Fake call · Emergency SOS</span>
+    <div class="app-wrapper">
+
+        <!-- Top Header with Brand and Instant View Switcher (Zero BLE Disconnect) -->
+        <header class="app-header">
+            <div class="brand-logo">
+                <img src="assets/logo.png" class="header-logo" alt="Aura Safety">
+                <div class="brand-text">
+                    <h1>Aura Safety</h1>
+                    <span class="sub-brand" id="view-indicator">WOMAN USER VIEW</span>
                 </div>
-            </a>
-            <div class="divider">— OR —</div>
-            <a href="parent.html" class="big-btn btn-parent">
-                <div class="btn-icon"><i class="fa-solid fa-users"></i></div>
-                <div class="btn-inner">
-                    <span class="btn-title">Parent Tracking Dashboard</span>
-                    <span class="btn-sub">Live GPS map · SOS alerts · Audio recordings</span>
+            </div>
+
+            <!-- In-Page Tab Switcher: Keeps Bluetooth Connected 24/7 -->
+            <div class="view-tabs">
+                <button id="btn-tab-user" class="tab-btn active" title="Woman User Dashboard">
+                    <i class="fa-solid fa-person-dress"></i> <span>User</span>
+                </button>
+                <button id="btn-tab-parent" class="tab-btn" title="Parent Tracking Dashboard">
+                    <i class="fa-solid fa-users"></i> <span>Parent</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ============================================================
+             SECTION 1: WOMAN USER DASHBOARD
+             ============================================================ -->
+        <main id="section-user" class="view-section">
+
+            <!-- BLE Status Banner -->
+            <div class="banner banner-pink">
+                <span><i class="fa-solid fa-user-shield"></i> MY SAFETY PENDANT</span>
+                <span id="ble-status-pill" class="status-pill status-disconnected">
+                    <span class="status-dot"></span>
+                    <span id="ble-status-text">DISCONNECTED</span>
+                </span>
+            </div>
+
+            <!-- Bluetooth Pairing Card -->
+            <div class="glass-card highlight-card">
+                <div class="card-title-group">
+                    <div class="icon-wrap icon-wrap-blue"><i class="fa-brands fa-bluetooth-b"></i></div>
+                    <div>
+                        <h2>Connect Safety Pendant</h2>
+                        <p>Pair your ESP32-S3 pendant over Bluetooth</p>
+                    </div>
                 </div>
-            </a>
+                <div id="ble-info" class="ble-info hidden">
+                    <div class="ble-device-row">
+                        <i class="fa-solid fa-gem" style="color:#E91E8C"></i>
+                        <div>
+                            <div id="ble-device-name" class="ble-device-name">Safety_Pendant_S3</div>
+                            <div class="ble-device-sub">Bluetooth Low Energy · Always-ON Active</div>
+                        </div>
+                        <div class="ble-signal-bars">
+                            <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span>
+                        </div>
+                    </div>
+                </div>
+                <button id="btn-connect-ble" class="btn btn-primary">
+                    <i class="fa-solid fa-wifi"></i> PAIR ESP32-S3 PENDANT
+                </button>
+            </div>
+
+            <!-- Gesture Reference Card -->
+            <div class="glass-card">
+                <div class="card-title-group">
+                    <div class="icon-wrap icon-wrap-purple"><i class="fa-solid fa-hand-pointer"></i></div>
+                    <div>
+                        <h2>Button Gesture Guide</h2>
+                        <p>How your push button gestures work</p>
+                    </div>
+                </div>
+                <div class="gesture-list">
+                    <div class="gesture-row">
+                        <div class="gesture-icon g-pink"><i class="fa-solid fa-phone-volume"></i></div>
+                        <div class="gesture-desc">
+                            <div class="g-label">Double Click (2 Presses)</div>
+                            <div class="g-sub">Shows "Dad Calling" incoming call screen (Vibration only)</div>
+                        </div>
+                        <span class="g-badge badge-pink">FAKE CALL</span>
+                    </div>
+                    <div class="gesture-row">
+                        <div class="gesture-icon g-red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="gesture-desc">
+                            <div class="g-label">Hold 2 Seconds</div>
+                            <div class="g-sub">LED ON + Strong vibration ➔ Instant Emergency SOS</div>
+                        </div>
+                        <span class="g-badge badge-red">SOS</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Contact Card -->
+            <div class="glass-card">
+                <div class="card-title-group">
+                    <div class="icon-wrap icon-wrap-green"><i class="fa-solid fa-address-book"></i></div>
+                    <div>
+                        <h2>Emergency Contact</h2>
+                        <p>Auto-called &amp; SMS alerted on SOS</p>
+                    </div>
+                </div>
+                <div class="input-form">
+                    <div class="input-field-wrapper">
+                        <i class="fa-solid fa-phone input-icon"></i>
+                        <input type="tel" id="contact-phone" value="+91 98765 43210" placeholder="+91 98765 43210">
+                    </div>
+                    <button id="btn-save-contact" class="btn btn-outline">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Contact
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ============================================================
+             SECTION 2: PARENT TRACKING DASHBOARD
+             ============================================================ -->
+        <main id="section-parent" class="view-section hidden">
+
+            <!-- SOS Alert Banner (Shows when SOS is active) -->
+            <div id="sos-banner" class="sos-banner hidden">
+                <div class="sos-pulse-dot"></div>
+                <div class="sos-banner-text">
+                    <strong>🚨 EMERGENCY SOS ACTIVE</strong>
+                    <span id="sos-banner-time">Alerting Now</span>
+                </div>
+                <button id="btn-silence-alarm" class="btn-silence-alarm" title="Silence Siren Alarm">
+                    <i class="fa-solid fa-volume-xmark"></i> MUTE ALARM
+                </button>
+            </div>
+
+            <!-- Live Status Row -->
+            <div class="banner banner-purple">
+                <span><i class="fa-solid fa-satellite-dish"></i> LIVE GUARDIAN MONITORING</span>
+                <span id="tracker-status" class="status-pill status-watching">
+                    <span class="status-dot"></span>
+                    <span id="tracker-status-text">WATCHING</span>
+                </span>
+            </div>
+
+            <!-- Live Light Map -->
+            <div class="glass-card map-card">
+                <div id="map"></div>
+                <button id="btn-recenter" class="recenter-btn" title="Center Map">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </button>
+            </div>
+
+            <!-- Incident Telemetry Grid -->
+            <div class="glass-card">
+                <div class="card-title-group">
+                    <div class="icon-wrap icon-wrap-purple"><i class="fa-solid fa-chart-line"></i></div>
+                    <div>
+                        <h2>Live Telemetry</h2>
+                        <p id="last-updated-text">Waiting for SOS event...</p>
+                    </div>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-circle-dot"></i> Status</span>
+                        <span id="d-status" class="detail-val text-green">NORMAL</span>
+                    </div>
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-battery-three-quarters"></i> Battery</span>
+                        <span id="d-battery" class="detail-val text-green">95%</span>
+                    </div>
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-gauge-high"></i> Speed</span>
+                        <span id="d-speed" class="detail-val text-purple">-- km/h</span>
+                    </div>
+                    <div class="detail-box">
+                        <span class="detail-label"><i class="fa-solid fa-bullseye"></i> GPS Accuracy</span>
+                        <span id="d-accuracy" class="detail-val text-amber">-- m</span>
+                    </div>
+                    <div class="detail-box full-width">
+                        <span class="detail-label"><i class="fa-solid fa-location-dot"></i> Exact Coordinates</span>
+                        <span id="d-coords" class="detail-val text-purple" style="font-size:.85rem;">Waiting for signal...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10-Second Ambient Audio Player -->
+            <div class="glass-card">
+                <div class="card-title-group">
+                    <div class="icon-wrap icon-wrap-pink"><i class="fa-solid fa-microphone-lines"></i></div>
+                    <div>
+                        <h2>10-Second Ambient Recording</h2>
+                        <p id="audio-timestamp-text">Captured during SOS activation</p>
+                    </div>
+                </div>
+                <div id="audio-placeholder" class="audio-placeholder">
+                    <i class="fa-solid fa-waveform-lines fa-2x" style="color:var(--muted)"></i>
+                    <p>Audio recording will appear here when SOS is triggered</p>
+                </div>
+                <div id="audio-container" class="hidden">
+                    <audio id="audio-player" controls preload="metadata" style="width:100%; border-radius:10px;"></audio>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Call Police 100 & Open Maps -->
+            <div class="action-row">
+                <a href="tel:100" class="btn btn-danger"><i class="fa-solid fa-phone"></i> Call Police (100)</a>
+                <a id="btn-open-maps" href="#" target="_blank" class="btn btn-outline"><i class="fa-solid fa-map-location-dot"></i> Open Maps</a>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- ============================================================
+         AUTHENTIC GOOGLE PHONE (ANDROID DIALER) UI
+         ============================================================ -->
+    <div id="fake-call-overlay" class="google-dialer-overlay hidden">
+
+        <!-- 1. INCOMING CALL SCREEN -->
+        <div id="call-incoming-state" class="dialer-screen">
+            <div class="dialer-top-status">
+                <span class="dialer-carrier">Airtel 5G</span>
+                <span id="call-clock" class="dialer-clock"></span>
+            </div>
+
+            <div class="dialer-caller-hero">
+                <div class="dialer-avatar-container">
+                    <div class="dialer-avatar-img">D</div>
+                    <div class="dialer-ripple-ring ring-1"></div>
+                    <div class="dialer-ripple-ring ring-2"></div>
+                </div>
+                <h1 class="dialer-caller-name">Dad</h1>
+                <p class="dialer-caller-number" id="call-contact-number">+91 98765 43210</p>
+                <div class="dialer-call-tag">Incoming call · Mobile</div>
+            </div>
+
+            <!-- Quick Action Pills -->
+            <div class="dialer-incoming-actions">
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-message"></i></div>
+                    <span>Reply</span>
+                </div>
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-bell-slash"></i></div>
+                    <span>Silence</span>
+                </div>
+                <div class="incoming-action-item">
+                    <div class="action-circle-icon"><i class="fa-solid fa-clock"></i></div>
+                    <span>Remind</span>
+                </div>
+            </div>
+
+            <!-- Accept & Decline Touch Controls -->
+            <div class="dialer-touch-bottom">
+                <div class="dialer-btn-group">
+                    <button id="btn-decline-call" class="dialer-circle-btn btn-google-decline" aria-label="Decline">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
+                    <span class="dialer-btn-sub">Decline</span>
+                </div>
+
+                <div class="dialer-btn-group">
+                    <button id="btn-accept-call" class="dialer-circle-btn btn-google-accept" aria-label="Answer">
+                        <i class="fa-solid fa-phone"></i>
+                    </button>
+                    <span class="dialer-btn-sub">Answer</span>
+                </div>
+            </div>
         </div>
 
-        <div class="footer">AURA SAFETY · ESP32-S3 Wearable Pendant v2.0</div>
+        <!-- 2. IN-CALL SCREEN (Exact Android Google Phone 3x3 Grid) -->
+        <div id="call-active-state" class="dialer-screen hidden">
+            <div class="dialer-incall-top">
+                <div class="incall-header-avatar">D</div>
+                <div class="incall-header-text">
+                    <h2 class="incall-header-name">Dad</h2>
+                    <p class="incall-header-number" id="call-active-number">+91 98765 43210</p>
+                    <p id="call-timer-display" class="incall-header-timer">00:00</p>
+                </div>
+            </div>
+
+            <div class="google-dialer-grid-wrap">
+                <div class="google-dialer-grid">
+
+                    <!-- Row 1 -->
+                    <div class="dialer-grid-item" id="btn-dialer-record">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-circle-dot"></i></div>
+                        <span class="dialer-grid-label">Record</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-hold">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-pause"></i></div>
+                        <span class="dialer-grid-label">Hold</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-add">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-plus"></i></div>
+                        <span class="dialer-grid-label">Add call</span>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="dialer-grid-item" id="btn-toggle-mute">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-microphone-slash"></i></div>
+                        <span class="dialer-grid-label">Mute</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-video">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-video"></i></div>
+                        <span class="dialer-grid-label">Video call</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-summarise">
+                        <div class="dialer-grid-icon icon-gemini-summarise"><i class="fa-solid fa-file-lines"></i></div>
+                        <span class="dialer-grid-label" style="font-weight:700;">Summarise</span>
+                    </div>
+
+                    <!-- Row 3 -->
+                    <div class="dialer-grid-item" id="btn-toggle-speaker">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-volume-high"></i></div>
+                        <span class="dialer-grid-label">Speaker</span>
+                    </div>
+
+                    <div class="dialer-grid-item item-end-call" id="btn-end-call">
+                        <div class="dialer-grid-icon icon-end-call"><i class="fa-solid fa-phone-slash"></i></div>
+                        <span class="dialer-grid-label">End</span>
+                    </div>
+
+                    <div class="dialer-grid-item" id="btn-dialer-keypad">
+                        <div class="dialer-grid-icon"><i class="fa-solid fa-braille"></i></div>
+                        <span class="dialer-grid-label">Dial pad</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Ringtone Audio -->
+    <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
+
+    <script src="app.js"></script>
 </body>
 </html>

@@ -1,371 +1,508 @@
-// ==========================================================
-// AURA SAFETY SYSTEM - INSTANT DISPATCH & PARALLEL RECORDING
-// ==========================================================
+// ============================================================
+// AURA SAFETY – UNIFIED ENGINE (ZERO BLE DISCONNECT)
+// ============================================================
 
-const SERVICE_UUID = "4fa8c001-1402-4ca2-8979-45d4d9807601";
+const SERVICE_UUID        = "4fa8c001-1402-4ca2-8979-45d4d9807601";
 const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
 let bleDevice = null;
-let bleCharacteristic = null;
+let bleChar   = null;
 let callTimer = null;
 let callSeconds = 0;
-let emergencyContact = localStorage.getItem('pendant_contact') || '+1234567890';
+let clockTimer  = null;
+let muteOn = false;
+let speakerOn = false;
+let holdOn = false;
+let emergencyContact = localStorage.getItem('pendant_contact') || '+91 98765 43210';
 
-// Parent Map Globals
-let map = null, marker = null, circle = null;
-let currentLat = 20.5937, currentLng = 78.9629;
-let isMapInitialized = false;
+// Map & Parent Telemetry
+let map = null;
+let userMarker = null;
+let accuracyCircle = null;
+let lastLat = null, lastLng = null;
 
-// 1. Tab Switching Function
-window.switchTab = function(tabName) {
-    const userTab = document.getElementById('tab-user');
-    const parentTab = document.getElementById('tab-parent');
-    const userPage = document.getElementById('user-page');
-    const parentPage = document.getElementById('parent-page');
-
-    if (!userTab || !parentTab || !userPage || !parentPage) return;
-
-    if (tabName === 'user') {
-        userTab.classList.add('active-tab');
-        parentTab.classList.remove('active-tab');
-        userPage.classList.remove('hidden');
-        parentPage.classList.add('hidden');
-    } else if (tabName === 'parent') {
-        parentTab.classList.add('active-tab');
-        userTab.classList.remove('active-tab');
-        parentPage.classList.remove('hidden');
-        userPage.classList.add('hidden');
-
-        setTimeout(() => {
-            initParentMap();
-        }, 100);
-    }
-};
+// Emergency Siren Audio Engine
+let audioCtx = null;
+let sirenOsc = null;
+let sirenGain = null;
+let sirenInterval = null;
+let isSirenPlaying = false;
+let isAlarmMuted = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-    const phoneInput = document.getElementById('contact-phone');
-    if (phoneInput) phoneInput.value = emergencyContact;
 
-    // Web Bluetooth Connect Button
-    const connectBtn = document.getElementById('btn-connect-ble');
-    if (connectBtn) {
-        connectBtn.addEventListener('click', async () => {
-            if (!navigator.bluetooth) {
-                showToast("Web Bluetooth is not supported in this browser. Open in Chrome!", "red");
-                return;
-            }
+    // View tab switching (Zero BLE disconnect)
+    document.getElementById('btn-tab-user').addEventListener('click', () => switchView('user'));
+    document.getElementById('btn-tab-parent').addEventListener('click', () => switchView('parent'));
 
-            try {
-                console.log('Requesting Bluetooth Device...');
-                
-                bleDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'Safety_Pendant_S3' }],
-                    optionalServices: [SERVICE_UUID]
-                }).catch(async (e) => {
-                    return await navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalServices: [SERVICE_UUID]
-                    });
-                });
+    // Emergency Contact
+    document.getElementById('contact-phone').value = emergencyContact;
+    document.getElementById('call-contact-number').textContent = emergencyContact;
+    document.getElementById('call-active-number').textContent = emergencyContact;
 
-                if (!bleDevice) return;
+    document.getElementById('btn-connect-ble').addEventListener('click', pairBLE);
+    document.getElementById('btn-save-contact').addEventListener('click', saveContact);
 
-                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+    // Google Phone Dialer Controls
+    document.getElementById('btn-decline-call').addEventListener('click', stopFakeCall);
+    document.getElementById('btn-accept-call').addEventListener('click', acceptFakeCall);
+    document.getElementById('btn-end-call').addEventListener('click', stopFakeCall);
 
-                const server = await bleDevice.gatt.connect();
-                const service = await server.getPrimaryService(SERVICE_UUID);
-                bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+    document.getElementById('btn-toggle-mute').addEventListener('click', toggleMute);
+    document.getElementById('btn-toggle-speaker').addEventListener('click', toggleSpeaker);
+    document.getElementById('btn-dialer-hold').addEventListener('click', toggleHold);
 
-                await bleCharacteristic.startNotifications();
-                bleCharacteristic.addEventListener('characteristicvaluechanged', handleGestureNotification);
+    // Parent Dashboard Controls
+    document.getElementById('btn-recenter').addEventListener('click', recenterMap);
+    document.getElementById('btn-silence-alarm').addEventListener('click', silenceAlarm);
 
-                updateConnectionStatus(true);
-                showToast("Connected to Safety Pendant S3!", "emerald");
-            } catch (err) {
-                console.error('BLE Connection Failed:', err);
-                showToast("BLE Connection Note: " + (err.message || err), "red");
-            }
-        });
+    // Initialize Leaflet Light Map
+    initMap();
+
+    // Check on startup if audio or telemetry exists from previous session (NO SIREN ON PASSIVE LOAD)
+    const existingAudio = localStorage.getItem('aura_audio_base64');
+    if (existingAudio) loadAudio(existingAudio);
+
+    const existingSOS = localStorage.getItem('aura_sos_event');
+    if (existingSOS) {
+        // Display existing telemetry without sounding alarm
+        displaySOSTelemetry(JSON.parse(existingSOS));
     }
 
-    // Save Contact Number
-    const saveContactBtn = document.getElementById('btn-save-contact');
-    if (saveContactBtn) {
-        saveContactBtn.addEventListener('click', () => {
-            const val = document.getElementById('contact-phone').value;
-            if (val) {
-                emergencyContact = val;
-                localStorage.setItem('pendant_contact', emergencyContact);
-                showToast("Emergency Contact Saved: " + emergencyContact, "emerald");
-            }
-        });
-    }
-
-    // Fake Call Handlers
-    document.getElementById('btn-decline-call')?.addEventListener('click', stopFakeCall);
-    document.getElementById('btn-accept-call')?.addEventListener('click', acceptFakeCall);
-
-    // Map Recenter
-    document.getElementById('btn-recenter-map')?.addEventListener('click', () => {
-        if (map && currentLat !== 0 && currentLng !== 0) {
-            map.setView([currentLat, currentLng], 16, { animate: true });
+    // Real-time storage listener for cross-tab events
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'aura_sos_event' && e.newValue) {
+            handleIncomingSOS(JSON.parse(e.newValue));
+        }
+        if (e.key === 'aura_audio_base64' && e.newValue) {
+            loadAudio(e.newValue);
         }
     });
+
+    updateCallClock();
+    clockTimer = setInterval(updateCallClock, 10000);
 });
 
-function updateConnectionStatus(isConnected) {
+// ─── Seamless View Switcher (Zero BLE Disconnect) ─────────────
+function switchView(view) {
+    const secUser = document.getElementById('section-user');
+    const secParent = document.getElementById('section-parent');
+    const btnUser = document.getElementById('btn-tab-user');
+    const btnParent = document.getElementById('btn-tab-parent');
+    const ind = document.getElementById('view-indicator');
+
+    if (view === 'user') {
+        secUser.classList.remove('hidden');
+        secParent.classList.add('hidden');
+        btnUser.classList.add('active');
+        btnParent.classList.remove('active');
+        ind.textContent = 'WOMAN USER VIEW';
+    } else {
+        secUser.classList.add('hidden');
+        secParent.classList.remove('hidden');
+        btnParent.classList.add('active');
+        btnUser.classList.remove('active');
+        ind.textContent = 'PARENT TRACKING VIEW';
+
+        // Invalidate map size so Leaflet renders properly on unhide
+        if (map) {
+            setTimeout(() => {
+                map.invalidateSize();
+                if (lastLat !== null) map.setView([lastLat, lastLng], 16);
+            }, 100);
+        }
+    }
+}
+
+function saveContact() {
+    emergencyContact = document.getElementById('contact-phone').value.trim();
+    if (!emergencyContact) return;
+    localStorage.setItem('pendant_contact', emergencyContact);
+    document.getElementById('call-contact-number').textContent = emergencyContact;
+    document.getElementById('call-active-number').textContent = emergencyContact;
+    showToast('Emergency contact saved: ' + emergencyContact, 'green');
+}
+
+// ─── Web Bluetooth Low Energy ─────────────────────────────────
+async function pairBLE() {
+    if (!navigator.bluetooth) {
+        showToast('Web Bluetooth requires Google Chrome on Android or Desktop.', 'red');
+        return;
+    }
+    try {
+        bleDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ name: 'Safety_Pendant_S3' }],
+            optionalServices: [SERVICE_UUID]
+        }).catch(() => navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [SERVICE_UUID]
+        }));
+
+        bleDevice.addEventListener('gattserverdisconnected', () => setBLEStatus(false));
+
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        bleChar = await service.getCharacteristic(CHARACTERISTIC_UUID);
+        await bleChar.startNotifications();
+        bleChar.addEventListener('characteristicvaluechanged', onGesture);
+
+        setBLEStatus(true);
+        showToast('Safety Pendant connected successfully!', 'green');
+    } catch (e) {
+        showToast('BLE Connection: ' + (e.message || e), 'red');
+    }
+}
+
+function setBLEStatus(connected) {
     const pill = document.getElementById('ble-status-pill');
     const text = document.getElementById('ble-status-text');
-    if (!pill || !text) return;
+    const info = document.getElementById('ble-info');
+    const btn  = document.getElementById('btn-connect-ble');
 
-    if (isConnected) {
-        text.innerText = 'CONNECTED';
+    if (connected) {
         pill.className = 'status-pill status-connected';
+        text.textContent = 'CONNECTED';
+        info.classList.remove('hidden');
+        btn.innerHTML = '<i class="fa-solid fa-link-slash"></i> Disconnect';
+        btn.onclick = () => { bleDevice?.gatt.disconnect(); setBLEStatus(false); };
     } else {
-        text.innerText = 'DISCONNECTED';
         pill.className = 'status-pill status-disconnected';
+        text.textContent = 'DISCONNECTED';
+        info.classList.add('hidden');
+        btn.innerHTML = '<i class="fa-solid fa-wifi"></i> PAIR ESP32-S3 PENDANT';
+        btn.onclick = pairBLE;
     }
 }
 
-function onDisconnected() {
-    console.log('BLE Disconnected!');
-    updateConnectionStatus(false);
-}
+// ─── Gesture Routing ──────────────────────────────────────────
+function onGesture(event) {
+    const val = event.target.value.getUint8(0);
+    console.log('[ESP32-S3 Gesture Received]:', val);
 
-// 2. Global Software Simulator Trigger
-window.triggerGesture = function(gestureCode) {
-    console.log('Triggering Gesture Code: 0x' + gestureCode.toString(16));
-    handleGestureCode(gestureCode);
-};
-
-function handleGestureNotification(event) {
-    const value = event.target.value.getUint8(0);
-    handleGestureCode(value);
-}
-
-function handleGestureCode(value) {
-    switch (value) {
-        case 0x02: // 2 Presses -> Fake Call ("Dad Calling")
-            showFakeCallOverlay();
-            break;
-        case 0x08: // 2 Sec Hold -> INSTANT FULL EMERGENCY SOS
-            executeEmergencyDispatch('full');
-            break;
-        case 0x03: // 3 Presses -> INSTANT STEALTH SOS
-            executeEmergencyDispatch('stealth');
-            break;
+    if (val === 0x02) {
+        // Double Click ➔ Fake Dad Call
+        showFakeCallOverlay();
+    } else if (val === 0x08) {
+        // 2-Sec Hold ➔ Instant Full Emergency SOS (Alerts at 0.0s + Parallel Audio)
+        dispatchEmergencySOS();
     }
 }
 
-// Fake Call System (2 Presses)
+// ─── Google Phone Fake Call Screen ───────────────────────────
 function showFakeCallOverlay() {
     const overlay = document.getElementById('fake-call-overlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('call-incoming-state').classList.remove('hidden');
+    document.getElementById('call-active-state').classList.add('hidden');
+
     const ringtone = document.getElementById('ringtone-audio');
-    if (overlay) overlay.classList.remove('hidden');
-    if (ringtone) {
-        ringtone.currentTime = 0;
-        ringtone.play().catch(e => console.log('Audio autoplay policy note:', e));
-    }
+    ringtone.currentTime = 0;
+    ringtone.play().catch(() => {});
+    updateCallClock();
+}
+
+function updateCallClock() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const el = document.getElementById('call-clock');
+    if (el) el.textContent = timeStr;
 }
 
 function acceptFakeCall() {
-    const ringtone = document.getElementById('ringtone-audio');
-    if (ringtone) ringtone.pause();
-    
-    const acceptBtn = document.getElementById('btn-accept-call');
-    if (acceptBtn && acceptBtn.parentElement) {
-        acceptBtn.parentElement.style.display = 'none';
-    }
+    document.getElementById('ringtone-audio').pause();
+    document.getElementById('call-incoming-state').classList.add('hidden');
+    document.getElementById('call-active-state').classList.remove('hidden');
 
     callSeconds = 0;
-    const statusText = document.getElementById('call-status-text');
-    if (statusText) statusText.innerText = '00:00 - Connected';
-
     if (callTimer) clearInterval(callTimer);
     callTimer = setInterval(() => {
         callSeconds++;
-        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
-        const secs = String(callSeconds % 60).padStart(2, '0');
-        if (statusText) statusText.innerText = `${mins}:${secs} - Connected`;
+        const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const s = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('call-timer-display').textContent = `${m}:${s}`;
     }, 1000);
 }
 
 function stopFakeCall() {
-    const overlay = document.getElementById('fake-call-overlay');
-    const ringtone = document.getElementById('ringtone-audio');
-    if (ringtone) ringtone.pause();
+    document.getElementById('ringtone-audio').pause();
     if (callTimer) clearInterval(callTimer);
-    if (overlay) overlay.classList.add('hidden');
+    document.getElementById('fake-call-overlay').classList.add('hidden');
+    document.getElementById('call-timer-display').textContent = '00:00';
+    callSeconds = 0;
 
-    const acceptBtn = document.getElementById('btn-accept-call');
-    if (acceptBtn && acceptBtn.parentElement) {
-        acceptBtn.parentElement.style.display = 'flex';
-    }
-    
-    const statusText = document.getElementById('call-status-text');
-    if (statusText) statusText.innerText = 'Mobile Incoming Call...';
+    muteOn = false; speakerOn = false; holdOn = false;
+    document.querySelector('#btn-toggle-mute .dialer-grid-icon')?.classList.remove('active-toggle');
+    document.querySelector('#btn-toggle-speaker .dialer-grid-icon')?.classList.remove('active-toggle');
+    document.querySelector('#btn-dialer-hold .dialer-grid-icon')?.classList.remove('active-toggle');
 }
 
-// ==========================================================
-// 3. INSTANT EMERGENCY SOS DISPATCHER (0.0s INSTANT ALERT FIRST)
-// ==========================================================
-function executeEmergencyDispatch(sosType) {
-    console.log('INSTANT 0.0s EMERGENCY DISPATCH TRIGGERED!');
+function toggleMute() {
+    muteOn = !muteOn;
+    document.querySelector('#btn-toggle-mute .dialer-grid-icon')?.classList.toggle('active-toggle', muteOn);
+}
 
-    // STEP A: INSTANT 0.0s ALERT DISPATCH (NO WAITING FOR RECORDING!)
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+function toggleSpeaker() {
+    speakerOn = !speakerOn;
+    document.querySelector('#btn-toggle-speaker .dialer-grid-icon')?.classList.toggle('active-toggle', speakerOn);
+}
 
-            // Update Parent Map & Telemetry IMMEDIATELY (0.0 seconds!)
-            updateParentMapPosition(lat, lng, pos.coords.accuracy, pos.coords.speed);
+function toggleHold() {
+    holdOn = !holdOn;
+    document.querySelector('#btn-dialer-hold .dialer-grid-icon')?.classList.toggle('active-toggle', holdOn);
+}
 
-            // Dispatch Automated Call & SMS Alert IMMEDIATELY (0.0 seconds!)
-            dispatchAutomatedCloudCallAndSMS(emergencyContact, lat, lng, mapsUrl);
+// ─── Instant Full Emergency SOS (0.0s Immediate Dispatch) ─────
+function dispatchEmergencySOS() {
+    console.log('[SOS] Emergency SOS hold detected! Triggering instant alerts...');
+    isAlarmMuted = false; // Reset mute for the new emergency
 
-        }, (err) => {
-            console.error('Geolocation Error:', err);
-            updateParentMapPosition(20.5937, 78.9629, 10, 0);
-            dispatchAutomatedCloudCallAndSMS(emergencyContact, 20.5937, 78.9629, "https://maps.google.com/?q=20.5937,78.9629");
-        }, { enableHighAccuracy: true });
+    if (!navigator.geolocation) {
+        triggerImmediateAlerts(emergencyContact, null);
+        return;
     }
 
-    // STEP B: BACKGROUND 11-SECOND AUDIO RECORDING (0 to 10s full recording)
-    record11sAudio().then((audioBlob) => {
-        if (audioBlob) {
-            const audioPlayer = document.getElementById('audio-player');
-            const audioContainer = document.getElementById('audio-container');
-            const audioTimestamp = document.getElementById('audio-timestamp');
-            
-            if (audioPlayer) audioPlayer.src = URL.createObjectURL(audioBlob);
-            if (audioContainer) audioContainer.classList.remove('hidden');
-            if (audioTimestamp) audioTimestamp.innerText = `Full 0-10s Recording Uploaded at ${new Date().toLocaleTimeString()}`;
-            
-            showToast("11-Second Ambient Audio Uploaded to Parent Map!", "emerald");
-        }
+    navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude: lat, longitude: lng, accuracy, speed } = pos.coords;
+        const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+
+        const sosData = {
+            lat, lng, accuracy, speed: speed || 0,
+            timestamp: new Date().toISOString(),
+            status: 'EMERGENCY SOS ACTIVE'
+        };
+
+        // 1. Save and handle SOS locally
+        localStorage.setItem('aura_sos_event', JSON.stringify(sosData));
+        handleIncomingSOS(sosData);
+
+        // 2. Trigger auto SMS & Phone call
+        triggerImmediateAlerts(emergencyContact, mapsUrl);
+
+        // 3. PARALLEL: Record 11s ambient audio and deliver next without delaying alert
+        record11sAudio().then(base64Data => {
+            if (!base64Data) return;
+            localStorage.setItem('aura_audio_base64', base64Data);
+            localStorage.setItem('aura_audio_time', new Date().toLocaleTimeString());
+            loadAudio(base64Data);
+            showToast('10-Second ambient audio delivered to Parent Dashboard', 'green');
+        });
+
+    }, () => triggerImmediateAlerts(emergencyContact, null), { enableHighAccuracy: true });
+}
+
+function triggerImmediateAlerts(phone, mapsUrl) {
+    const loc = mapsUrl ? `Location: ${mapsUrl}` : 'Location unavailable!';
+    const smsBody = encodeURIComponent(`🚨 EMERGENCY SOS! She needs urgent help! ${loc}`);
+    showToast(`🚨 SOS Alert Dispatched to ${phone}`, 'red');
+    window.location.href = `sms:${phone}?body=${smsBody}`;
+    setTimeout(() => { window.location.href = `tel:${phone}`; }, 1500);
+}
+
+// ─── Parent Telemetry & Siren Alarm Handler ───────────────────
+function handleIncomingSOS(data) {
+    displaySOSTelemetry(data);
+    // ONLY sound the siren alarm when an active SOS is explicitly triggered
+    startEmergencySiren();
+}
+
+function displaySOSTelemetry(data) {
+    if (!data) return;
+    const { lat, lng, accuracy, speed, timestamp } = data;
+
+    document.getElementById('sos-banner').classList.remove('hidden');
+    const t = new Date(timestamp);
+    document.getElementById('sos-banner-time').textContent = 'Triggered at ' + t.toLocaleTimeString();
+
+    document.getElementById('d-status').textContent = '🚨 SOS ACTIVE';
+    document.getElementById('d-status').className = 'detail-val text-red';
+    document.getElementById('d-speed').textContent = (speed * 3.6).toFixed(1) + ' km/h';
+    document.getElementById('d-accuracy').textContent = Math.round(accuracy) + ' m';
+    document.getElementById('d-coords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('last-updated-text').textContent = 'Live update: ' + t.toLocaleTimeString();
+
+    updateMapPin(lat, lng);
+    document.getElementById('btn-open-maps').href = `https://maps.google.com/?q=${lat},${lng}`;
+
+    const pill = document.getElementById('tracker-status');
+    const pillText = document.getElementById('tracker-status-text');
+    pill.className = 'status-pill status-emergency';
+    pillText.textContent = 'EMERGENCY';
+}
+
+// ─── Emergency Siren Engine ───────────────────────────────────
+function startEmergencySiren() {
+    if (isSirenPlaying || isAlarmMuted) return;
+
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        audioCtx = new AudioContext();
+        sirenGain = audioCtx.createGain();
+        sirenGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        sirenGain.connect(audioCtx.destination);
+
+        sirenOsc = audioCtx.createOscillator();
+        sirenOsc.type = 'sawtooth';
+        sirenOsc.connect(sirenGain);
+        sirenOsc.start();
+
+        let highPitch = false;
+        sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+        sirenInterval = setInterval(() => {
+            if (!audioCtx || !sirenOsc) return;
+            const targetFreq = highPitch ? 650 : 960;
+            sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
+            highPitch = !highPitch;
+        }, 400);
+
+        isSirenPlaying = true;
+        console.log('[Siren] Emergency Alarm started.');
+    } catch (e) {
+        console.error('[Siren] Web Audio error:', e);
+    }
+}
+
+function silenceAlarm() {
+    if (isSirenPlaying) {
+        try {
+            if (sirenInterval) clearInterval(sirenInterval);
+            if (sirenOsc) { sirenOsc.stop(); sirenOsc.disconnect(); }
+            if (audioCtx) { audioCtx.close(); }
+        } catch (e) {}
+        isSirenPlaying = false;
+    }
+    isAlarmMuted = true;
+
+    const btn = document.getElementById('btn-silence-alarm');
+    btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ALARM MUTED';
+    btn.classList.add('alarm-muted');
+    btn.disabled = true;
+    console.log('[Siren] Emergency Alarm silenced by parent.');
+}
+
+// ─── Leaflet Map Engine ───────────────────────────────────────
+function initMap() {
+    const mapEl = document.getElementById('map');
+    if (!mapEl) return;
+
+    map = L.map('map', { zoomControl: false, attributionControl: false })
+           .setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd'
+    }).addTo(map);
+
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+}
+
+function updateMapPin(lat, lng) {
+    if (!map) return;
+    lastLat = lat; lastLng = lng;
+
+    const icon = L.divIcon({
+        className: '',
+        html: '<div class="custom-sos-pin"></div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
+
+    if (userMarker) {
+        userMarker.setLatLng([lat, lng]);
+    } else {
+        userMarker = L.marker([lat, lng], { icon }).addTo(map);
+    }
+
+    const accuracy = parseInt(document.getElementById('d-accuracy').textContent) || 80;
+    if (accuracyCircle) {
+        accuracyCircle.setLatLng([lat, lng]);
+        accuracyCircle.setRadius(accuracy);
+    } else {
+        accuracyCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#E91E8C',
+            fillColor: '#F472B6',
+            fillOpacity: 0.18,
+            weight: 2
+        }).addTo(map);
+    }
+
+    map.setView([lat, lng], 16, { animate: true });
 }
 
-// Automated Cloud Voice Call & Automated SMS Gateway Dispatcher
-function dispatchAutomatedCloudCallAndSMS(phoneNumber, lat, lng, mapsUrl) {
-    console.log(`[INSTANT DISPATCH] Automated Cloud Call & SMS sent to: ${phoneNumber}`);
-
-    // Non-blocking Toast Banner (Does NOT pause execution!)
-    showToast(`🚨 INSTANT SOS DISPATCHED to ${phoneNumber}! Call & SMS Triggered.`, "red");
-
-    // Play Siren Alert
-    const audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audioAlert.play().catch(e => console.log('Siren audio error:', e));
-
-    // Native SMS & Tel fallback links
-    const smsMessage = encodeURIComponent(`FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`);
-    window.location.href = `sms:${phoneNumber}?body=${smsMessage}`;
-
-    setTimeout(() => {
-        window.location.href = `tel:${phoneNumber}`;
-    }, 1200);
+function recenterMap() {
+    if (map && lastLat !== null) map.setView([lastLat, lastLng], 16, { animate: true });
 }
 
-// 11-Second Audio Recorder (Full 0 to 10s audio = 11,000 ms)
+// ─── Parallel 11-Second Background Audio Recorder ────────────
 function record11sAudio() {
-    return new Promise((resolve) => {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            resolve(null); return;
+    return new Promise(resolve => {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            resolve(null);
+            return;
         }
 
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            const mediaRecorder = new MediaRecorder(stream);
-            const audioChunks = [];
-            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/m4a' });
-                resolve(audioBlob);
+        const mimeTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav', ''];
+        let selectedMime = '';
+        for (const type of mimeTypes) {
+            if (type === '' || MediaRecorder.isTypeSupported(type)) {
+                selectedMime = type;
+                break;
+            }
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            const options = selectedMime ? { mimeType: selectedMime } : {};
+            const rec = new MediaRecorder(stream, options);
+            const chunks = [];
+
+            rec.ondataavailable = e => {
+                if (e.data && e.data.size > 0) chunks.push(e.data);
             };
 
-            mediaRecorder.start();
-            setTimeout(() => mediaRecorder.stop(), 11000); // Full 11,000ms recording (0-10s)
+            rec.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                const blob = new Blob(chunks, { type: selectedMime || 'audio/webm' });
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            };
+
+            rec.start();
+            setTimeout(() => {
+                if (rec.state === 'recording') rec.stop();
+            }, 11000); // Record full 11 seconds (0 - 10s snippet)
         }).catch(err => {
-            console.error('Microphone error:', err);
+            console.error('[Audio] Microphone error:', err);
             resolve(null);
         });
     });
 }
 
-// Non-Blocking Toast Notification Function
-function showToast(message, type = "blue") {
-    const existing = document.querySelector('.toast-notification');
-    if (existing) existing.remove();
+function loadAudio(base64Data) {
+    if (!base64Data) return;
+    const player = document.getElementById('audio-player');
+    const container = document.getElementById('audio-container');
+    const placeholder = document.getElementById('audio-placeholder');
+    const tsText = document.getElementById('audio-timestamp-text');
 
-    const toast = document.createElement('div');
-    toast.className = `toast-notification ${type === 'red' ? 'toast-red' : ''}`;
-    toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${message}</span>`;
-    document.body.appendChild(toast);
+    player.src = base64Data;
+    placeholder.classList.add('hidden');
+    container.classList.remove('hidden');
 
-    setTimeout(() => {
-        toast.remove();
-    }, 4000);
+    const ts = localStorage.getItem('aura_audio_time');
+    if (ts) tsText.textContent = 'Recorded at ' + ts;
 }
 
-// ==========================================================
-// PARENT LIVE MAP TRACKER ENGINE
-// ==========================================================
-function initParentMap() {
-    if (isMapInitialized) {
-        if (map) map.invalidateSize();
-        return;
-    }
-
-    const mapElem = document.getElementById('map');
-    if (!mapElem) return;
-
-    isMapInitialized = true;
-    map = L.map('map').setView([currentLat, currentLng], 15);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    const customIcon = L.divIcon({
-        className: 'pulse-marker',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-    });
-
-    marker = L.marker([currentLat, currentLng], { icon: customIcon }).addTo(map);
-    circle = L.circle([currentLat, currentLng], { radius: 15, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }).addTo(map);
-
-    setTimeout(() => {
-        if (map) map.invalidateSize();
-    }, 200);
-}
-
-function updateParentMapPosition(lat, lng, accuracy = 10, speed = 0) {
-    currentLat = lat;
-    currentLng = lng;
-    const latLng = [lat, lng];
-
-    if (marker && circle && map) {
-        marker.setLatLng(latLng);
-        circle.setLatLng(latLng);
-        circle.setRadius(accuracy);
-        map.setView(latLng, 16, { animate: true });
-    }
-
-    const statusElem = document.getElementById('detail-status');
-    const batteryElem = document.getElementById('detail-battery');
-    const speedElem = document.getElementById('detail-speed');
-    const accuracyElem = document.getElementById('detail-accuracy');
-    const timestampElem = document.getElementById('time-stamp');
-
-    if (statusElem) {
-        statusElem.innerText = 'EMERGENCY SOS ACTIVE';
-        statusElem.className = 'detail-val text-red';
-    }
-    if (batteryElem) batteryElem.innerText = '95%';
-    if (speedElem) speedElem.innerText = `${(speed || 0).toFixed(1)} km/h`;
-    if (accuracyElem) accuracyElem.innerText = `${(accuracy || 0).toFixed(0)} meters`;
-    if (timestampElem) timestampElem.innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
+// ─── Non-Blocking Toast Banners ──────────────────────────────
+function showToast(msg, type = '') {
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    const t = document.createElement('div');
+    t.className = `toast ${type === 'red' ? 'toast-red' : type === 'green' ? 'toast-green' : ''}`;
+    t.innerHTML = `<i class="fa-solid fa-bell" style="color:#E91E8C"></i><span>${msg}</span>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
 }
