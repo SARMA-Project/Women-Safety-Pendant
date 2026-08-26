@@ -3,93 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Safety Pendant Companion PWA</title>
+    <title>AURA | Smart Safety Pendant</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#090D16">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Main Dashboard UI -->
-    <div id="main-ui" class="app-container">
-        <header class="header">
-            <div class="brand">
-                <span class="icon">🛡️</span>
-                <h2>Safety Pendant Companion</h2>
+    <!-- Main Dashboard Container -->
+    <div class="app-viewport">
+        
+        <!-- Header Bar -->
+        <header class="app-header">
+            <div class="brand-logo">
+                <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <h1>AURA SAFETY</h1>
+                    <span class="sub-brand">ESP32-S3 PENDANT COMPANION</span>
+                </div>
             </div>
-            <div id="ble-status" class="status-badge badge-offline">DISCONNECTED</div>
+            <div id="ble-status-pill" class="status-pill status-disconnected">
+                <span class="status-dot"></span>
+                <span id="ble-status-text">DISCONNECTED</span>
+            </div>
         </header>
 
-        <section class="card">
-            <h3>1. Bluetooth Pendant Connection</h3>
-            <p class="subtitle">Pair with your ESP32-S3 Super Mini Pendant</p>
-            <button id="btn-connect-ble" class="btn btn-primary">🔗 Connect ESP32-S3 Pendant</button>
-        </section>
+        <main class="main-content">
+            
+            <!-- Connection Control Card -->
+            <section class="glass-card main-connection-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-brands fa-bluetooth-b highlight-blue"></i>
+                        <div>
+                            <h3>Bluetooth Connection</h3>
+                            <p>Pair with your ESP32-S3 Super Mini Pendant</p>
+                        </div>
+                    </div>
+                </div>
 
-        <section class="card">
-            <h3>2. Emergency Contact Setup</h3>
-            <p class="subtitle">Phone number to receive SMS & Call alerts</p>
-            <div class="input-group">
-                <label for="contact-phone">Contact Phone Number:</label>
-                <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1234567890">
-            </div>
-            <button id="btn-save-contact" class="btn btn-secondary">💾 Save Contact</button>
-        </section>
+                <div class="connection-action-zone">
+                    <div class="signal-radar hidden" id="radar-animation">
+                        <div class="radar-circle circle1"></div>
+                        <div class="radar-circle circle2"></div>
+                        <div class="radar-icon"><i class="fa-solid fa-gem"></i></div>
+                    </div>
 
-        <section class="card">
-            <h3>3. Gestures Reference</h3>
-            <div class="gesture-list">
-                <div class="gesture-item">
-                    <span class="badge-blue">Double Click</span>
-                    <span>Fake Call ("Dad Calling")</span>
+                    <button id="btn-connect-ble" class="btn btn-glow-primary">
+                        <i class="fa-solid fa-link"></i> Connect Safety Pendant
+                    </button>
                 </div>
-                <div class="gesture-item">
-                    <span class="badge-orange">Triple Click</span>
-                    <span>Stealth SOS (Silent + Audio + GPS)</span>
+            </section>
+
+            <!-- Emergency Contact Card -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-solid fa-address-book highlight-emerald"></i>
+                        <div>
+                            <h3>Emergency Contacts</h3>
+                            <p>Primary contact for auto-calls & SMS alerts</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="gesture-item">
-                    <span class="badge-red">Hold 2 Seconds</span>
-                    <span>Full SOS (Alarm + Call + Audio + GPS)</span>
+
+                <div class="input-form">
+                    <div class="input-field-wrapper">
+                        <i class="fa-solid fa-phone input-icon"></i>
+                        <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
+                    </div>
+                    <button id="btn-save-contact" class="btn btn-glass">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Contact Number
+                    </button>
                 </div>
-                <div class="gesture-item">
-                    <span class="badge-green">6 Rapid Clicks</span>
-                    <span>Cancel SOS (Within 10s Grace Period)</span>
+            </section>
+
+            <!-- Gesture Instructions & Quick Simulator -->
+            <section class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon-title">
+                        <i class="fa-solid fa-hand-pointer highlight-amber"></i>
+                        <div>
+                            <h3>Pendant Gestures & Preview</h3>
+                            <p>Hardware trigger reference & simulator</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
+
+                <div class="gesture-grid">
+                    <div class="gesture-card" id="sim-double-click">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-blue">Double Click</span>
+                            <h4>Fake Call De-escalation</h4>
+                            <p>Triggers "Dad Calling" screen & ringtone</p>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x02)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card" id="sim-triple-click">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-amber">Triple Click</span>
+                            <h4>Stealth Silent SOS</h4>
+                            <p>Silent 10s audio + Live location SMS</p>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x03)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card" id="sim-hold">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-red">Hold 2 Seconds</span>
+                            <h4>Full Emergency SOS</h4>
+                            <p>Loud Alarm + Auto Phone Call + Live Map</p>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x08)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+
+                    <div class="gesture-card" id="sim-cancel">
+                        <div class="gesture-info">
+                            <span class="gesture-pill pill-emerald">6 Rapid Clicks</span>
+                            <h4>Cancel SOS Sequence</h4>
+                            <p>Aborts false alarm within 10 seconds</p>
+                        </div>
+                        <button class="btn-sim" onclick="simulateGesture(0x06)">Test <i class="fa-solid fa-play"></i></button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
     </div>
 
-    <!-- Fullscreen Realistic Fake Call Overlay -->
-    <div id="fake-call-overlay" class="fake-call-container hidden">
-        <div class="caller-info">
-            <div class="caller-avatar">👤</div>
-            <h1 class="caller-name">Dad</h1>
-            <p id="call-status-text" class="call-subtext">Mobile Incoming Call...</p>
-        </div>
+    <!-- Ultra-Realistic Fullscreen Incoming Call UI (iOS/Android 14 Glass Style) -->
+    <div id="fake-call-overlay" class="fake-call-modal hidden">
+        <div class="call-glass-container">
+            <div class="caller-profile">
+                <div class="caller-avatar-glow">
+                    <div class="avatar-circle">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </div>
+                <h1 class="caller-title">Dad</h1>
+                <span id="call-status-text" class="call-subtitle">Mobile Incoming Call...</span>
+            </div>
 
-        <div class="call-actions">
-            <button id="btn-decline-call" class="btn-call btn-decline">
-                <span class="call-icon">📞</span>
-                <span>Decline</span>
-            </button>
-            <button id="btn-accept-call" class="btn-call btn-accept">
-                <span class="call-icon">📞</span>
-                <span>Accept</span>
-            </button>
+            <div class="call-controls-wrap">
+                <div class="call-button-col">
+                    <button id="btn-decline-call" class="action-circle btn-decline-call">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
+                    <span>Decline</span>
+                </div>
+
+                <div class="call-button-col">
+                    <button id="btn-accept-call" class="action-circle btn-accept-call">
+                        <i class="fa-solid fa-phone"></i>
+                    </button>
+                    <span>Accept</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 10-Second Grace Window Cancel Bar -->
-    <div id="grace-bar" class="grace-notification hidden">
-        <div class="grace-content">
-            <span class="grace-spinner">⏳</span>
-            <div>
-                <h4>SOS TRIGGERED!</h4>
-                <p>Press button 6 times on pendant to cancel (<span id="grace-seconds">10</span>s)</p>
+    <!-- 10-Second Emergency Cancellation Banner -->
+    <div id="grace-bar" class="grace-alert-banner hidden">
+        <div class="grace-alert-content">
+            <div class="timer-ring-container">
+                <span id="grace-seconds" class="timer-number">10</span>
+            </div>
+            <div class="grace-text">
+                <div class="alert-title"><i class="fa-solid fa-triangle-exclamation"></i> SOS ALERT ACTIVATED</div>
+                <p>Press 6 times on pendant to cancel dispatch</p>
             </div>
         </div>
-        <button id="btn-cancel-grace" class="btn btn-danger-small">CANCEL SOS NOW</button>
+        <button id="btn-cancel-grace" class="btn btn-cancel-sos">CANCEL SOS</button>
     </div>
 
     <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>

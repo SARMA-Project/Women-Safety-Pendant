@@ -1,5 +1,5 @@
 // ==========================================================
-// SAFETY PENDANT WEB COMPANION PWA - APP LOGIC (FIXED)
+// AURA SAFETY PENDANT WEB COMPANION - APP ENGINE
 // ==========================================================
 
 const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
@@ -15,6 +15,8 @@ let graceTimer = null;
 let graceCountdown = 10;
 let isGraceActive = false;
 let pendingSosType = '';
+let callTimer = null;
+let callSeconds = 0;
 let emergencyContact = localStorage.getItem('pendant_contact') || '+1234567890';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,24 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Fake Call Handlers
     document.getElementById('btn-decline-call').addEventListener('click', stopFakeCall);
-    document.getElementById('btn-accept-call').addEventListener('click', () => {
-        document.getElementById('call-status-text').innerText = '00:01 - Call Connected';
-        document.getElementById('btn-accept-call').style.display = 'none';
-        const ringtone = document.getElementById('ringtone-audio');
-        ringtone.pause();
-    });
-
+    document.getElementById('btn-accept-call').addEventListener('click', acceptFakeCall);
     document.getElementById('btn-cancel-grace').addEventListener('click', cancelGracePeriod);
 });
 
 function updateConnectionStatus(isConnected) {
-    const badge = document.getElementById('ble-status');
+    const pill = document.getElementById('ble-status-pill');
+    const text = document.getElementById('ble-status-text');
     if (isConnected) {
-        badge.innerText = 'CONNECTED';
-        badge.className = 'status-badge badge-online';
+        text.innerText = 'CONNECTED';
+        pill.className = 'status-pill status-connected';
     } else {
-        badge.innerText = 'DISCONNECTED';
-        badge.className = 'status-badge badge-offline';
+        text.innerText = 'DISCONNECTED';
+        pill.className = 'status-pill status-disconnected';
     }
 }
 
@@ -81,11 +78,19 @@ function onDisconnected() {
     updateConnectionStatus(false);
 }
 
-// Gesture Payload Handler
+// Global simulator function for testing gestures on screen
+window.simulateGesture = function(gestureCode) {
+    console.log('Simulating Gesture Code: 0x' + gestureCode.toString(16));
+    handleGestureCode(gestureCode);
+};
+
 function handleGestureNotification(event) {
     const value = event.target.value.getUint8(0);
     console.log('Received BLE Gesture Payload: 0x' + value.toString(16));
+    handleGestureCode(value);
+}
 
+function handleGestureCode(value) {
     switch (value) {
         case 0x02: // Double Click -> Fake Call ("Dad Calling")
             showFakeCallOverlay();
@@ -112,12 +117,30 @@ function showFakeCallOverlay() {
     ringtone.play().catch(e => console.log('Audio autoplay blocked', e));
 }
 
+function acceptFakeCall() {
+    const ringtone = document.getElementById('ringtone-audio');
+    ringtone.pause();
+    document.getElementById('btn-accept-call').parentElement.style.display = 'none';
+    
+    callSeconds = 0;
+    document.getElementById('call-status-text').innerText = '00:00 - Connected';
+
+    if (callTimer) clearInterval(callTimer);
+    callTimer = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('call-status-text').innerText = `${mins}:${secs} - Connected`;
+    }, 1000);
+}
+
 function stopFakeCall() {
     const overlay = document.getElementById('fake-call-overlay');
     const ringtone = document.getElementById('ringtone-audio');
     ringtone.pause();
+    if (callTimer) clearInterval(callTimer);
     overlay.classList.add('hidden');
-    document.getElementById('btn-accept-call').style.display = 'flex';
+    document.getElementById('btn-accept-call').parentElement.style.display = 'flex';
     document.getElementById('call-status-text').innerText = 'Mobile Incoming Call...';
 }
 
@@ -161,7 +184,6 @@ function cancelGracePeriod() {
 async function executeEmergencyDispatch(sosType) {
     console.log('Dispatching Emergency SOS:', sosType);
 
-    // Get current GPS position
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
@@ -177,10 +199,8 @@ async function executeEmergencyDispatch(sosType) {
                 : `FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`
         );
 
-        // Triggers native SMS app
         window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
 
-        // If Full SOS, initiate direct phone call via tel protocol
         if (sosType === 'full') {
             setTimeout(() => {
                 window.location.href = `tel:${emergencyContact}`;
@@ -207,7 +227,7 @@ function record10sAudio() {
             mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/m4a' });
-                resolve(audioBlob);
+                resolve(resolve(audioBlob));
             };
 
             mediaRecorder.start();
