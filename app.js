@@ -1,12 +1,8 @@
 // ==========================================================
-// AURA SAFETY SYSTEM - SCROLLABLE UNIFIED APP ENGINE
+// AURA SAFETY SYSTEM - SCROLLABLE UNIFIED APP ENGINE (AUDITED)
 // ==========================================================
 
-const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-// BLE Configuration
+// Service & Characteristic UUIDs
 const SERVICE_UUID = "4fa8c001-1402-4ca2-8979-45d4d9807601";
 const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
@@ -32,6 +28,8 @@ window.switchTab = function(tabName) {
     const userPage = document.getElementById('user-page');
     const parentPage = document.getElementById('parent-page');
 
+    if (!userTab || !parentTab || !userPage || !parentPage) return;
+
     if (tabName === 'user') {
         userTab.classList.add('active-tab');
         parentTab.classList.remove('active-tab');
@@ -51,52 +49,72 @@ window.switchTab = function(tabName) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('contact-phone').value = emergencyContact;
+    const phoneInput = document.getElementById('contact-phone');
+    if (phoneInput) phoneInput.value = emergencyContact;
 
     // Web Bluetooth Connect Button
-    document.getElementById('btn-connect-ble').addEventListener('click', async () => {
-        try {
-            console.log('Requesting Bluetooth Device...');
-            
-            // Flexible Bluetooth Request (Accepts Safety_Pendant_S3 or all devices)
-            bleDevice = await navigator.bluetooth.requestDevice({
-                filters: [{ name: 'Safety_Pendant_S3' }],
-                optionalServices: [SERVICE_UUID]
-            }).catch(async () => {
-                return await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
+    const connectBtn = document.getElementById('btn-connect-ble');
+    if (connectBtn) {
+        connectBtn.addEventListener('click', async () => {
+            if (!navigator.bluetooth) {
+                alert("Web Bluetooth is not supported in this browser. Please open this page in Google Chrome!");
+                return;
+            }
+
+            try {
+                console.log('Requesting Bluetooth Device...');
+                
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'Safety_Pendant_S3' }],
                     optionalServices: [SERVICE_UUID]
+                }).catch(async (e) => {
+                    console.warn('Name filter failed, attempting request with optionalServices...', e);
+                    return await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [SERVICE_UUID]
+                    });
                 });
-            });
 
-            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                if (!bleDevice) {
+                    alert('No Bluetooth device selected.');
+                    return;
+                }
 
-            const server = await bleDevice.gatt.connect();
-            const service = await server.getPrimaryService(SERVICE_UUID);
-            bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-            await bleCharacteristic.startNotifications();
-            bleCharacteristic.addEventListener('characteristicvaluechanged', handleGestureNotification);
+                const server = await bleDevice.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-            updateConnectionStatus(true);
-            alert('Connected successfully to Safety Pendant S3!');
-        } catch (err) {
-            console.error('BLE Connection Failed:', err);
-            alert('Bluetooth Connection Error: ' + err.message);
-        }
-    });
+                await bleCharacteristic.startNotifications();
+                bleCharacteristic.addEventListener('characteristicvaluechanged', handleGestureNotification);
+
+                updateConnectionStatus(true);
+                alert('Connected successfully to Safety Pendant S3!');
+            } catch (err) {
+                console.error('BLE Connection Failed:', err);
+                alert('Bluetooth Connection Note: ' + (err.message || err));
+            }
+        });
+    }
 
     // Save Contact
-    document.getElementById('btn-save-contact').addEventListener('click', () => {
-        emergencyContact = document.getElementById('contact-phone').value;
-        localStorage.setItem('pendant_contact', emergencyContact);
-        alert('Emergency Contact Saved: ' + emergencyContact);
-    });
+    const saveContactBtn = document.getElementById('btn-save-contact');
+    if (saveContactBtn) {
+        saveContactBtn.addEventListener('click', () => {
+            const val = document.getElementById('contact-phone').value;
+            if (val) {
+                emergencyContact = val;
+                localStorage.setItem('pendant_contact', emergencyContact);
+                alert('Emergency Contact Saved: ' + emergencyContact);
+            }
+        });
+    }
 
     // Fake Call Handlers
-    document.getElementById('btn-decline-call').addEventListener('click', stopFakeCall);
-    document.getElementById('btn-accept-call').addEventListener('click', acceptFakeCall);
-    document.getElementById('btn-cancel-grace').addEventListener('click', cancelGracePeriod);
+    document.getElementById('btn-decline-call')?.addEventListener('click', stopFakeCall);
+    document.getElementById('btn-accept-call')?.addEventListener('click', acceptFakeCall);
+    document.getElementById('btn-cancel-grace')?.addEventListener('click', cancelGracePeriod);
 
     // Map Recenter
     document.getElementById('btn-recenter-map')?.addEventListener('click', () => {
@@ -109,6 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateConnectionStatus(isConnected) {
     const pill = document.getElementById('ble-status-pill');
     const text = document.getElementById('ble-status-text');
+    if (!pill || !text) return;
+
     if (isConnected) {
         text.innerText = 'CONNECTED';
         pill.className = 'status-pill status-connected';
@@ -123,7 +143,7 @@ function onDisconnected() {
     updateConnectionStatus(false);
 }
 
-// 2. Global Software System Simulator Trigger
+// 2. Global Software Simulator Trigger
 window.triggerGesture = function(gestureCode) {
     console.log('Triggering Gesture Code: 0x' + gestureCode.toString(16));
     handleGestureCode(gestureCode);
@@ -155,34 +175,49 @@ function handleGestureCode(value) {
 function showFakeCallOverlay() {
     const overlay = document.getElementById('fake-call-overlay');
     const ringtone = document.getElementById('ringtone-audio');
-    overlay.classList.remove('hidden');
-    ringtone.currentTime = 0;
-    ringtone.play().catch(e => console.log('Audio autoplay blocked', e));
+    if (overlay) overlay.classList.remove('hidden');
+    if (ringtone) {
+        ringtone.currentTime = 0;
+        ringtone.play().catch(e => console.log('Audio autoplay policy note:', e));
+    }
 }
 
 function acceptFakeCall() {
     const ringtone = document.getElementById('ringtone-audio');
-    ringtone.pause();
-    document.getElementById('btn-accept-call').parentElement.style.display = 'none';
+    if (ringtone) ringtone.pause();
+    
+    const acceptBtn = document.getElementById('btn-accept-call');
+    if (acceptBtn && acceptBtn.parentElement) {
+        acceptBtn.parentElement.style.display = 'none';
+    }
+
     callSeconds = 0;
-    document.getElementById('call-status-text').innerText = '00:00 - Connected';
+    const statusText = document.getElementById('call-status-text');
+    if (statusText) statusText.innerText = '00:00 - Connected';
+
     if (callTimer) clearInterval(callTimer);
     callTimer = setInterval(() => {
         callSeconds++;
         const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
         const secs = String(callSeconds % 60).padStart(2, '0');
-        document.getElementById('call-status-text').innerText = `${mins}:${secs} - Connected`;
+        if (statusText) statusText.innerText = `${mins}:${secs} - Connected`;
     }, 1000);
 }
 
 function stopFakeCall() {
     const overlay = document.getElementById('fake-call-overlay');
     const ringtone = document.getElementById('ringtone-audio');
-    ringtone.pause();
+    if (ringtone) ringtone.pause();
     if (callTimer) clearInterval(callTimer);
-    overlay.classList.add('hidden');
-    document.getElementById('btn-accept-call').parentElement.style.display = 'flex';
-    document.getElementById('call-status-text').innerText = 'Mobile Incoming Call...';
+    if (overlay) overlay.classList.add('hidden');
+
+    const acceptBtn = document.getElementById('btn-accept-call');
+    if (acceptBtn && acceptBtn.parentElement) {
+        acceptBtn.parentElement.style.display = 'flex';
+    }
+    
+    const statusText = document.getElementById('call-status-text');
+    if (statusText) statusText.innerText = 'Mobile Incoming Call...';
 }
 
 // 10-Second Grace Window Cancel Controller
@@ -192,18 +227,19 @@ function startGracePeriod(sosType) {
     graceCountdown = 10;
 
     const graceBar = document.getElementById('grace-bar');
-    document.getElementById('grace-seconds').innerText = graceCountdown;
-    graceBar.classList.remove('hidden');
+    const secondsElem = document.getElementById('grace-seconds');
+    if (secondsElem) secondsElem.innerText = graceCountdown;
+    if (graceBar) graceBar.classList.remove('hidden');
 
     if (graceTimer) clearInterval(graceTimer);
 
     graceTimer = setInterval(() => {
         graceCountdown--;
-        document.getElementById('grace-seconds').innerText = graceCountdown;
+        if (secondsElem) secondsElem.innerText = graceCountdown;
 
         if (graceCountdown <= 0) {
             clearInterval(graceTimer);
-            graceBar.classList.add('hidden');
+            if (graceBar) graceBar.classList.add('hidden');
             if (isGraceActive) {
                 isGraceActive = false;
                 executeEmergencyDispatch(pendingSosType);
@@ -216,7 +252,8 @@ function cancelGracePeriod() {
     if (isGraceActive) {
         isGraceActive = false;
         if (graceTimer) clearInterval(graceTimer);
-        document.getElementById('grace-bar').classList.add('hidden');
+        const graceBar = document.getElementById('grace-bar');
+        if (graceBar) graceBar.classList.add('hidden');
         alert('SOS CANCELLED BY GESTURE!');
     }
 }
@@ -225,41 +262,46 @@ function cancelGracePeriod() {
 async function executeEmergencyDispatch(sosType) {
     console.log('Dispatching Emergency SOS:', sosType);
 
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
-        // 1. Update Parent Page Live Map & Telemetry Details
-        updateParentMapPosition(lat, lng, pos.coords.accuracy, pos.coords.speed);
+            // 1. Update Parent Page Live Map & Telemetry Details
+            updateParentMapPosition(lat, lng, pos.coords.accuracy, pos.coords.speed);
 
-        // 2. Record 10-second ambient audio snippet
-        const audioBlob = await record10sAudio();
-        if (audioBlob) {
-            const audioPlayer = document.getElementById('audio-player');
-            audioPlayer.src = URL.createObjectURL(audioBlob);
-            document.getElementById('audio-container').classList.remove('hidden');
-        }
+            // 2. Record 10-second ambient audio snippet
+            const audioBlob = await record10sAudio();
+            if (audioBlob) {
+                const audioPlayer = document.getElementById('audio-player');
+                const audioContainer = document.getElementById('audio-container');
+                if (audioPlayer) audioPlayer.src = URL.createObjectURL(audioBlob);
+                if (audioContainer) audioContainer.classList.remove('hidden');
+            }
 
-        // 3. Dispatch SMS link alert
-        const smsMessage = encodeURIComponent(
-            sosType === 'stealth' 
-                ? `STEALTH SOS! I need help. Location: ${mapsUrl}` 
-                : `FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`
-        );
+            // 3. Dispatch SMS link alert
+            const smsMessage = encodeURIComponent(
+                sosType === 'stealth' 
+                    ? `STEALTH SOS! I need help. Location: ${mapsUrl}` 
+                    : `FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`
+            );
 
-        window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
+            window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
 
-        // 4. Auto-dial Phone Call
-        if (sosType === 'full') {
-            setTimeout(() => {
-                window.location.href = `tel:${emergencyContact}`;
-            }, 1000);
-        }
+            // 4. Auto-dial Phone Call
+            if (sosType === 'full') {
+                setTimeout(() => {
+                    window.location.href = `tel:${emergencyContact}`;
+                }, 1000);
+            }
 
-    }, (err) => {
-        console.error('Geolocation Error:', err);
-    }, { enableHighAccuracy: true });
+        }, (err) => {
+            console.error('Geolocation Error:', err);
+            // Fallback map update if location access denied
+            updateParentMapPosition(20.5937, 78.9629, 10, 0);
+        }, { enableHighAccuracy: true });
+    }
 }
 
 // 10-Second Audio Recorder
@@ -296,6 +338,9 @@ function initParentMap() {
         return;
     }
 
+    const mapElem = document.getElementById('map');
+    if (!mapElem) return;
+
     isMapInitialized = true;
     map = L.map('map').setView([currentLat, currentLng], 15);
 
@@ -330,9 +375,18 @@ function updateParentMapPosition(lat, lng, accuracy = 10, speed = 0) {
         map.setView(latLng, 16, { animate: true });
     }
 
-    document.getElementById('detail-status').innerText = 'EMERGENCY SOS ACTIVE';
-    document.getElementById('detail-battery').innerText = '95%';
-    document.getElementById('detail-speed').innerText = `${(speed || 0).toFixed(1)} km/h`;
-    document.getElementById('detail-accuracy').innerText = `${(accuracy || 0).toFixed(0)} meters`;
-    document.getElementById('time-stamp').innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
+    const statusElem = document.getElementById('detail-status');
+    const batteryElem = document.getElementById('detail-battery');
+    const speedElem = document.getElementById('detail-speed');
+    const accuracyElem = document.getElementById('detail-accuracy');
+    const timestampElem = document.getElementById('time-stamp');
+
+    if (statusElem) {
+        statusElem.innerText = 'EMERGENCY SOS ACTIVE';
+        statusElem.className = 'detail-val text-red';
+    }
+    if (batteryElem) batteryElem.innerText = '95%';
+    if (speedElem) speedElem.innerText = `${(speed || 0).toFixed(1)} km/h`;
+    if (accuracyElem) accuracyElem.innerText = `${(accuracy || 0).toFixed(0)} meters`;
+    if (timestampElem) timestampElem.innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
 }
