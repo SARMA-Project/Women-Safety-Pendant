@@ -24,12 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (existingAudio) loadAudio(existingAudio);
 
     const existingSOS = localStorage.getItem('aura_sos_event');
-    if (existingSOS) displaySOSTelemetry(JSON.parse(existingSOS));
+    if (existingSOS) {
+        try { displaySOSTelemetry(JSON.parse(existingSOS)); } catch(e){}
+    }
 
     // 2. Listen for fresh live SOS events & audio from user page across all tabs
     window.addEventListener('storage', (e) => {
         if (e.key === 'aura_sos_event' && e.newValue) {
-            handleIncomingLiveSOS(JSON.parse(e.newValue));
+            try { handleIncomingLiveSOS(JSON.parse(e.newValue)); } catch(err){}
         }
         if (e.key === 'aura_audio_base64' && e.newValue) {
             loadAudio(e.newValue);
@@ -37,7 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-recenter').addEventListener('click', recenterMap);
-    document.getElementById('btn-silence-alarm').addEventListener('click', silenceAlarm);
+    
+    // Silence Alarm Button: attached via event listener + touch handler
+    const muteBtn = document.getElementById('btn-silence-alarm');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', silenceAlarm);
+        muteBtn.addEventListener('touchstart', (e) => { e.preventDefault(); silenceAlarm(); }, { passive: false });
+    }
 
     // Audio context unlock on click
     document.addEventListener('click', () => {
@@ -47,11 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { once: true });
 });
 
-// ─── Emergency Siren Alarm (Web Audio API) ───────────────────
+// ─── Emergency Siren Alarm (100% Bulletproof Mute) ───────────
 function startEmergencySiren() {
     if (isSirenPlaying || isAlarmMuted) return;
 
     try {
+        stopAnyPlayingSiren();
+
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
 
@@ -69,7 +79,10 @@ function startEmergencySiren() {
         sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
 
         sirenInterval = setInterval(() => {
-            if (!audioCtx || !sirenOsc) return;
+            if (!audioCtx || !sirenOsc || isAlarmMuted) {
+                stopAnyPlayingSiren();
+                return;
+            }
             const targetFreq = highPitch ? 650 : 960;
             sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
             highPitch = !highPitch;
@@ -78,26 +91,46 @@ function startEmergencySiren() {
         isSirenPlaying = true;
         console.log('[Siren] Emergency Alarm started.');
     } catch (e) {
-        console.error('[Siren] Failed to start Web Audio alarm:', e);
+        console.error('[Siren] Web Audio error:', e);
     }
 }
 
-function silenceAlarm() {
-    if (isSirenPlaying) {
-        try {
-            if (sirenInterval) clearInterval(sirenInterval);
-            if (sirenOsc) { sirenOsc.stop(); sirenOsc.disconnect(); }
-            if (audioCtx) { audioCtx.close(); }
-        } catch (e) {}
-        isSirenPlaying = false;
+function stopAnyPlayingSiren() {
+    try {
+        if (sirenInterval) {
+            clearInterval(sirenInterval);
+            sirenInterval = null;
+        }
+        if (sirenGain && audioCtx) {
+            sirenGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            sirenGain.disconnect();
+        }
+        if (sirenOsc) {
+            sirenOsc.stop();
+            sirenOsc.disconnect();
+            sirenOsc = null;
+        }
+        if (audioCtx) {
+            audioCtx.close();
+            audioCtx = null;
+        }
+    } catch (e) {
+        console.warn('[Siren] Cleanup:', e);
     }
+    isSirenPlaying = false;
+}
+
+function silenceAlarm() {
+    console.log('[Siren] Silencing emergency alarm NOW...');
     isAlarmMuted = true;
+    stopAnyPlayingSiren();
 
     const btn = document.getElementById('btn-silence-alarm');
-    btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ALARM MUTED';
-    btn.classList.add('alarm-muted');
-    btn.disabled = true;
-    console.log('[Siren] Emergency Alarm silenced by parent.');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ALARM MUTED';
+        btn.classList.add('alarm-muted');
+        btn.disabled = true;
+    }
 }
 
 // ─── Map (Light Theme Tile Layer) ────────────────────────────
@@ -152,8 +185,14 @@ function recenterMap() {
 
 // ─── Live SOS Event Handler ──────────────────────────────────
 function handleIncomingLiveSOS(data) {
+    isAlarmMuted = false; // Reset mute for the new emergency
+    const btn = document.getElementById('btn-silence-alarm');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> MUTE ALARM';
+        btn.classList.remove('alarm-muted');
+        btn.disabled = false;
+    }
     displaySOSTelemetry(data);
-    // ONLY sound siren on live SOS triggers
     startEmergencySiren();
 }
 

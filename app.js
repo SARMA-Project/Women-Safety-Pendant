@@ -1,5 +1,5 @@
 // ============================================================
-// AURA SAFETY – UNIFIED ENGINE (ZERO BLE DISCONNECT)
+// AURA SAFETY – UNIFIED MASTER ENGINE (ZERO BLE DISCONNECT)
 // ============================================================
 
 const SERVICE_UUID        = "4fa8c001-1402-4ca2-8979-45d4d9807601";
@@ -15,13 +15,13 @@ let speakerOn = false;
 let holdOn = false;
 let emergencyContact = localStorage.getItem('pendant_contact') || '+91 98765 43210';
 
-// Map & Parent Telemetry
+// Leaflet Map & Parent Telemetry
 let map = null;
 let userMarker = null;
 let accuracyCircle = null;
 let lastLat = null, lastLng = null;
 
-// Emergency Siren Audio Engine
+// Emergency Siren Audio Engine (Ultra-Reliable Web Audio)
 let audioCtx = null;
 let sirenOsc = null;
 let sirenGain = null;
@@ -31,7 +31,7 @@ let isAlarmMuted = false;
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // View tab switching (Zero BLE disconnect)
+    // View tab switcher (Keeps Bluetooth connected 24/7 without page reload)
     document.getElementById('btn-tab-user').addEventListener('click', () => switchView('user'));
     document.getElementById('btn-tab-parent').addEventListener('click', () => switchView('parent'));
 
@@ -54,7 +54,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Parent Dashboard Controls
     document.getElementById('btn-recenter').addEventListener('click', recenterMap);
-    document.getElementById('btn-silence-alarm').addEventListener('click', silenceAlarm);
+    
+    // Silence Alarm Button: attached via event listener + touch handler
+    const muteBtn = document.getElementById('btn-silence-alarm');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', silenceAlarm);
+        muteBtn.addEventListener('touchstart', (e) => { e.preventDefault(); silenceAlarm(); }, { passive: false });
+    }
 
     // Initialize Leaflet Light Map
     initMap();
@@ -65,14 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const existingSOS = localStorage.getItem('aura_sos_event');
     if (existingSOS) {
-        // Display existing telemetry without sounding alarm
-        displaySOSTelemetry(JSON.parse(existingSOS));
+        try { displaySOSTelemetry(JSON.parse(existingSOS)); } catch(e){}
     }
 
     // Real-time storage listener for cross-tab events
     window.addEventListener('storage', (e) => {
         if (e.key === 'aura_sos_event' && e.newValue) {
-            handleIncomingSOS(JSON.parse(e.newValue));
+            try { handleIncomingSOS(JSON.parse(e.newValue)); } catch(err){}
         }
         if (e.key === 'aura_audio_base64' && e.newValue) {
             loadAudio(e.newValue);
@@ -180,7 +185,7 @@ function onGesture(event) {
     console.log('[ESP32-S3 Gesture Received]:', val);
 
     if (val === 0x02) {
-        // Double Click ➔ Fake Dad Call
+        // Double Click ➔ Fake Dad Call (Vibration only, No LED)
         showFakeCallOverlay();
     } else if (val === 0x08) {
         // 2-Sec Hold ➔ Instant Full Emergency SOS (Alerts at 0.0s + Parallel Audio)
@@ -254,7 +259,15 @@ function toggleHold() {
 // ─── Instant Full Emergency SOS (0.0s Immediate Dispatch) ─────
 function dispatchEmergencySOS() {
     console.log('[SOS] Emergency SOS hold detected! Triggering instant alerts...');
-    isAlarmMuted = false; // Reset mute for the new emergency
+    
+    // Reset mute state for this new emergency
+    isAlarmMuted = false;
+    const btn = document.getElementById('btn-silence-alarm');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> MUTE ALARM';
+        btn.classList.remove('alarm-muted');
+        btn.disabled = false;
+    }
 
     if (!navigator.geolocation) {
         triggerImmediateAlerts(emergencyContact, null);
@@ -329,11 +342,13 @@ function displaySOSTelemetry(data) {
     pillText.textContent = 'EMERGENCY';
 }
 
-// ─── Emergency Siren Engine ───────────────────────────────────
+// ─── Emergency Siren Engine (100% Bulletproof Mute) ───────────
 function startEmergencySiren() {
     if (isSirenPlaying || isAlarmMuted) return;
 
     try {
+        stopAnyPlayingSiren(); // Terminate any existing audio instances first
+
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
 
@@ -351,7 +366,10 @@ function startEmergencySiren() {
         sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
 
         sirenInterval = setInterval(() => {
-            if (!audioCtx || !sirenOsc) return;
+            if (!audioCtx || !sirenOsc || isAlarmMuted) {
+                stopAnyPlayingSiren();
+                return;
+            }
             const targetFreq = highPitch ? 650 : 960;
             sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
             highPitch = !highPitch;
@@ -364,22 +382,43 @@ function startEmergencySiren() {
     }
 }
 
-function silenceAlarm() {
-    if (isSirenPlaying) {
-        try {
-            if (sirenInterval) clearInterval(sirenInterval);
-            if (sirenOsc) { sirenOsc.stop(); sirenOsc.disconnect(); }
-            if (audioCtx) { audioCtx.close(); }
-        } catch (e) {}
-        isSirenPlaying = false;
+function stopAnyPlayingSiren() {
+    try {
+        if (sirenInterval) {
+            clearInterval(sirenInterval);
+            sirenInterval = null;
+        }
+        if (sirenGain && audioCtx) {
+            sirenGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            sirenGain.disconnect();
+        }
+        if (sirenOsc) {
+            sirenOsc.stop();
+            sirenOsc.disconnect();
+            sirenOsc = null;
+        }
+        if (audioCtx) {
+            audioCtx.close();
+            audioCtx = null;
+        }
+    } catch (e) {
+        console.warn('[Siren] Cleanup:', e);
     }
+    isSirenPlaying = false;
+}
+
+function silenceAlarm() {
+    console.log('[Siren] Silencing emergency alarm NOW...');
     isAlarmMuted = true;
+    stopAnyPlayingSiren();
 
     const btn = document.getElementById('btn-silence-alarm');
-    btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ALARM MUTED';
-    btn.classList.add('alarm-muted');
-    btn.disabled = true;
-    console.log('[Siren] Emergency Alarm silenced by parent.');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ALARM MUTED';
+        btn.classList.add('alarm-muted');
+        btn.disabled = true;
+    }
+    showToast('Emergency Siren Silenced', 'blue');
 }
 
 // ─── Leaflet Map Engine ───────────────────────────────────────
@@ -474,7 +513,7 @@ function record11sAudio() {
             rec.start();
             setTimeout(() => {
                 if (rec.state === 'recording') rec.stop();
-            }, 11000); // Record full 11 seconds (0 - 10s snippet)
+            }, 11000); // 11-second audio snippet
         }).catch(err => {
             console.error('[Audio] Microphone error:', err);
             resolve(null);
