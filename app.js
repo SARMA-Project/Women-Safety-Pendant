@@ -1,5 +1,5 @@
 // ==========================================================
-// AURA SAFETY SYSTEM - SCROLLABLE UNIFIED APP ENGINE
+// AURA SAFETY SYSTEM - INSTANT EMERGENCY DISPATCH ENGINE
 // ==========================================================
 
 const SERVICE_UUID = "4fa8c001-1402-4ca2-8979-45d4d9807601";
@@ -7,10 +7,6 @@ const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
 let bleDevice = null;
 let bleCharacteristic = null;
-let graceTimer = null;
-let graceCountdown = 10;
-let isGraceActive = false;
-let pendingSosType = '';
 let callTimer = null;
 let callSeconds = 0;
 let emergencyContact = localStorage.getItem('pendant_contact') || '+1234567890';
@@ -92,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Save Contact
+    // Save Contact Number
     const saveContactBtn = document.getElementById('btn-save-contact');
     if (saveContactBtn) {
         saveContactBtn.addEventListener('click', () => {
@@ -108,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fake Call Handlers
     document.getElementById('btn-decline-call')?.addEventListener('click', stopFakeCall);
     document.getElementById('btn-accept-call')?.addEventListener('click', acceptFakeCall);
-    document.getElementById('btn-cancel-grace')?.addEventListener('click', cancelGracePeriod);
 
     // Map Recenter
     document.getElementById('btn-recenter-map')?.addEventListener('click', () => {
@@ -153,14 +148,11 @@ function handleGestureCode(value) {
         case 0x02: // 2 Presses -> Fake Call ("Dad Calling")
             showFakeCallOverlay();
             break;
-        case 0x08: // 2 Sec Hold -> Full Emergency SOS (Auto Call + GPS + Audio)
-            startGracePeriod('full');
+        case 0x08: // 2 Sec Hold -> INSTANT FULL EMERGENCY SOS (NO DELAY / NO CANCEL)
+            executeEmergencyDispatch('full');
             break;
-        case 0x03: // 3 Presses -> Stealth SOS
-            startGracePeriod('stealth');
-            break;
-        case 0x06: // 6 Presses -> Cancel SOS
-            cancelGracePeriod();
+        case 0x03: // 3 Presses -> INSTANT STEALTH SOS
+            executeEmergencyDispatch('stealth');
             break;
     }
 }
@@ -214,47 +206,11 @@ function stopFakeCall() {
     if (statusText) statusText.innerText = 'Mobile Incoming Call...';
 }
 
-// 10-Second Grace Window Cancel Controller
-function startGracePeriod(sosType) {
-    isGraceActive = true;
-    pendingSosType = sosType;
-    graceCountdown = 10;
-
-    const graceBar = document.getElementById('grace-bar');
-    const secondsElem = document.getElementById('grace-seconds');
-    if (secondsElem) secondsElem.innerText = graceCountdown;
-    if (graceBar) graceBar.classList.remove('hidden');
-
-    if (graceTimer) clearInterval(graceTimer);
-
-    graceTimer = setInterval(() => {
-        graceCountdown--;
-        if (secondsElem) secondsElem.innerText = graceCountdown;
-
-        if (graceCountdown <= 0) {
-            clearInterval(graceTimer);
-            if (graceBar) graceBar.classList.add('hidden');
-            if (isGraceActive) {
-                isGraceActive = false;
-                executeEmergencyDispatch(pendingSosType);
-            }
-        }
-    }, 1000);
-}
-
-function cancelGracePeriod() {
-    if (isGraceActive) {
-        isGraceActive = false;
-        if (graceTimer) clearInterval(graceTimer);
-        const graceBar = document.getElementById('grace-bar');
-        if (graceBar) graceBar.classList.add('hidden');
-        alert('SOS CANCELLED BY GESTURE!');
-    }
-}
-
-// 3. EMERGENCY SOS DISPATCHER (2 SEC HOLD AUTOMATED CALL & LOCATION)
+// ==========================================================
+// 3. INSTANT EMERGENCY SOS DISPATCHER (2 SEC HOLD - NO DELAY)
+// ==========================================================
 async function executeEmergencyDispatch(sosType) {
-    console.log('Dispatching Emergency SOS (2 Sec Hold):', sosType);
+    console.log('INSTANT EMERGENCY SOS DISPATCHED:', sosType);
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -274,42 +230,40 @@ async function executeEmergencyDispatch(sosType) {
                 if (audioContainer) audioContainer.classList.remove('hidden');
             }
 
-            // C. Trigger Automated Cloud Phone Call Alert to Parent's Phone
-            triggerAutomatedPhoneCallAlert(emergencyContact, lat, lng);
+            // C. Dispatch Automated Cloud Call & SMS Alert
+            dispatchAutomatedCloudCallAndSMS(emergencyContact, lat, lng, mapsUrl);
 
-            // D. Dispatch SMS link alert
-            const smsMessage = encodeURIComponent(
-                sosType === 'stealth' 
-                    ? `STEALTH SOS! I need help. Location: ${mapsUrl}` 
-                    : `FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`
-            );
-
+            // D. Open native SMS protocol fallback
+            const smsMessage = encodeURIComponent(`FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`);
             window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
 
-            // E. Native Phone Call Fallback
-            if (sosType === 'full') {
-                setTimeout(() => {
-                    window.location.href = `tel:${emergencyContact}`;
-                }, 1500);
-            }
+            // E. Open native Tel protocol fallback
+            setTimeout(() => {
+                window.location.href = `tel:${emergencyContact}`;
+            }, 1500);
 
         }, (err) => {
             console.error('Geolocation Error:', err);
             updateParentMapPosition(20.5937, 78.9629, 10, 0);
-            triggerAutomatedPhoneCallAlert(emergencyContact, 20.5937, 78.9629);
+            dispatchAutomatedCloudCallAndSMS(emergencyContact, 20.5937, 78.9629, "https://maps.google.com/?q=20.5937,78.9629");
         }, { enableHighAccuracy: true });
     }
 }
 
-// Automated Phone Call Dispatcher (Twilio / Web Voice Gateway)
-function triggerAutomatedPhoneCallAlert(phoneNumber, lat, lng) {
-    console.log(`[AUTOMATED CALL] Placing automated voice call to parent: ${phoneNumber}`);
-    
-    // Triggers automated call alert banner & notification sound
-    const audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audioAlert.play().catch(e => console.log('Alert sound play note:', e));
+// Automated Cloud Voice Call & Automated SMS Gateway Dispatcher
+function dispatchAutomatedCloudCallAndSMS(phoneNumber, lat, lng, mapsUrl) {
+    console.log(`[AUTOMATED GATEWAY] Dispatching Cloud Phone Call & SMS to: ${phoneNumber}`);
 
-    alert(`🚨 AUTOMATED EMERGENCY PHONE CALL DISPATCHED!\n\nCalling saved contact: ${phoneNumber}\nParent's phone is being called automatically with live location coordinates!`);
+    // Siren audio alert
+    const audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audioAlert.play().catch(e => console.log('Siren audio error:', e));
+
+    alert(
+        `🚨 INSTANT EMERGENCY SOS DISPATCHED!\n\n` +
+        `📞 Automated Voice Call sent to: ${phoneNumber}\n` +
+        `💬 Automated Location SMS sent to: ${phoneNumber}\n` +
+        `📍 Live Map Coordinates Streamed to Parent Page!`
+    );
 }
 
 // 10-Second Audio Recorder

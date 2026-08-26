@@ -11,10 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Leaflet CSS for Map -->
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Leaflet JS Library -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <link rel="stylesheet" href="style.css">
@@ -33,7 +31,6 @@
                 </div>
             </div>
             
-            <!-- Tab Navigation for Woman User & Parents -->
             <nav class="top-nav-tabs">
                 <button id="tab-user" class="nav-tab active-tab" onclick="switchTab('user')">
                     <i class="fa-solid fa-person-dress"></i> Woman User Page
@@ -77,8 +74,8 @@
                     <div class="card-title-group">
                         <i class="fa-solid fa-flask icon-amber"></i>
                         <div>
-                            <h2>Software System Simulator</h2>
-                            <p>Click below to test features directly on screen</p>
+                            <h2>Instant Trigger Simulator</h2>
+                            <p>Click below to test instant call & SMS dispatch</p>
                         </div>
                     </div>
 
@@ -89,13 +86,8 @@
                         </button>
 
                         <button class="btn-sim-card sim-red" onclick="triggerGesture(0x08)">
-                            <div class="sim-title"><i class="fa-solid fa-triangle-exclamation"></i> Test 2 Sec Hold (Emergency SOS)</div>
-                            <span class="sim-desc">Records 10s audio, updates Parent Map & triggers alerts</span>
-                        </button>
-
-                        <button class="btn-sim-card sim-emerald" onclick="triggerGesture(0x06)">
-                            <div class="sim-title"><i class="fa-solid fa-circle-xmark"></i> Test 6 Presses (Cancel SOS)</div>
-                            <span class="sim-desc">Cancels active SOS within 10-second grace window</span>
+                            <div class="sim-title"><i class="fa-solid fa-triangle-exclamation"></i> Test 2 Sec Hold (INSTANT EMERGENCY SOS)</div>
+                            <span class="sim-desc">Instant Automated Call & SMS + Live GPS Map Stream</span>
                         </button>
                     </div>
                 </div>
@@ -105,8 +97,8 @@
                     <div class="card-title-group">
                         <i class="fa-solid fa-address-book icon-emerald"></i>
                         <div>
-                            <h2>Emergency Phone Number Setup</h2>
-                            <p>Primary contact for auto-dialing & SMS link alerts</p>
+                            <h2>Parent / Emergency Phone Number Setup</h2>
+                            <p>Primary contact for automated calls & SMS alerts</p>
                         </div>
                     </div>
                     <div class="input-form">
@@ -115,7 +107,7 @@
                             <input type="tel" id="contact-phone" value="+1234567890" placeholder="+1 234 567 890">
                         </div>
                         <button id="btn-save-contact" class="btn btn-glass">
-                            <i class="fa-solid fa-floppy-disk"></i> Save Contact Number
+                            <i class="fa-solid fa-floppy-disk"></i> Save Emergency Contact
                         </button>
                     </div>
                 </div>
@@ -211,18 +203,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- 10-Second Cancel Grace Banner -->
-    <div id="grace-bar" class="grace-alert-banner hidden">
-        <div class="grace-alert-content">
-            <div class="timer-ring-container"><span id="grace-seconds" class="timer-number">10</span></div>
-            <div class="grace-text">
-                <div class="alert-title"><i class="fa-solid fa-triangle-exclamation"></i> SOS ALERT ACTIVATED</div>
-                <p>Press 6 times on pendant to cancel</p>
-            </div>
-        </div>
-        <button id="btn-cancel-grace" class="btn btn-cancel-sos">CANCEL SOS</button>
     </div>
 
     <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
