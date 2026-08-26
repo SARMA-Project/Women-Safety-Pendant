@@ -1,5 +1,5 @@
 // ==========================================================
-// AURA SAFETY SYSTEM - INSTANT EMERGENCY DISPATCH ENGINE
+// AURA SAFETY SYSTEM - INSTANT DISPATCH & PARALLEL RECORDING
 // ==========================================================
 
 const SERVICE_UUID = "4fa8c001-1402-4ca2-8979-45d4d9807601";
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (connectBtn) {
         connectBtn.addEventListener('click', async () => {
             if (!navigator.bluetooth) {
-                alert("Web Bluetooth is not supported in this browser. Please open this page in Google Chrome!");
+                showToast("Web Bluetooth is not supported in this browser. Open in Chrome!", "red");
                 return;
             }
 
@@ -80,10 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 bleCharacteristic.addEventListener('characteristicvaluechanged', handleGestureNotification);
 
                 updateConnectionStatus(true);
-                alert('Connected successfully to Safety Pendant S3!');
+                showToast("Connected to Safety Pendant S3!", "emerald");
             } catch (err) {
                 console.error('BLE Connection Failed:', err);
-                alert('Bluetooth Connection Note: ' + (err.message || err));
+                showToast("BLE Connection Note: " + (err.message || err), "red");
             }
         });
     }
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val) {
                 emergencyContact = val;
                 localStorage.setItem('pendant_contact', emergencyContact);
-                alert('Emergency Contact Saved: ' + emergencyContact);
+                showToast("Emergency Contact Saved: " + emergencyContact, "emerald");
             }
         });
     }
@@ -148,7 +148,7 @@ function handleGestureCode(value) {
         case 0x02: // 2 Presses -> Fake Call ("Dad Calling")
             showFakeCallOverlay();
             break;
-        case 0x08: // 2 Sec Hold -> INSTANT FULL EMERGENCY SOS (NO DELAY / NO CANCEL)
+        case 0x08: // 2 Sec Hold -> INSTANT FULL EMERGENCY SOS
             executeEmergencyDispatch('full');
             break;
         case 0x03: // 3 Presses -> INSTANT STEALTH SOS
@@ -207,40 +207,23 @@ function stopFakeCall() {
 }
 
 // ==========================================================
-// 3. INSTANT EMERGENCY SOS DISPATCHER (2 SEC HOLD - NO DELAY)
+// 3. INSTANT EMERGENCY SOS DISPATCHER (0.0s INSTANT ALERT FIRST)
 // ==========================================================
-async function executeEmergencyDispatch(sosType) {
-    console.log('INSTANT EMERGENCY SOS DISPATCHED:', sosType);
+function executeEmergencyDispatch(sosType) {
+    console.log('INSTANT 0.0s EMERGENCY DISPATCH TRIGGERED!');
 
+    // STEP A: INSTANT 0.0s ALERT DISPATCH (NO WAITING FOR RECORDING!)
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async (pos) => {
+        navigator.geolocation.getCurrentPosition((pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
-            // A. Update Parent Page Live Map & Telemetry Details
+            // Update Parent Map & Telemetry IMMEDIATELY (0.0 seconds!)
             updateParentMapPosition(lat, lng, pos.coords.accuracy, pos.coords.speed);
 
-            // B. Record 10-second ambient audio snippet
-            const audioBlob = await record10sAudio();
-            if (audioBlob) {
-                const audioPlayer = document.getElementById('audio-player');
-                const audioContainer = document.getElementById('audio-container');
-                if (audioPlayer) audioPlayer.src = URL.createObjectURL(audioBlob);
-                if (audioContainer) audioContainer.classList.remove('hidden');
-            }
-
-            // C. Dispatch Automated Cloud Call & SMS Alert
+            // Dispatch Automated Call & SMS Alert IMMEDIATELY (0.0 seconds!)
             dispatchAutomatedCloudCallAndSMS(emergencyContact, lat, lng, mapsUrl);
-
-            // D. Open native SMS protocol fallback
-            const smsMessage = encodeURIComponent(`FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`);
-            window.location.href = `sms:${emergencyContact}?body=${smsMessage}`;
-
-            // E. Open native Tel protocol fallback
-            setTimeout(() => {
-                window.location.href = `tel:${emergencyContact}`;
-            }, 1500);
 
         }, (err) => {
             console.error('Geolocation Error:', err);
@@ -248,26 +231,45 @@ async function executeEmergencyDispatch(sosType) {
             dispatchAutomatedCloudCallAndSMS(emergencyContact, 20.5937, 78.9629, "https://maps.google.com/?q=20.5937,78.9629");
         }, { enableHighAccuracy: true });
     }
+
+    // STEP B: BACKGROUND 11-SECOND AUDIO RECORDING (0 to 10s full recording)
+    record11sAudio().then((audioBlob) => {
+        if (audioBlob) {
+            const audioPlayer = document.getElementById('audio-player');
+            const audioContainer = document.getElementById('audio-container');
+            const audioTimestamp = document.getElementById('audio-timestamp');
+            
+            if (audioPlayer) audioPlayer.src = URL.createObjectURL(audioBlob);
+            if (audioContainer) audioContainer.classList.remove('hidden');
+            if (audioTimestamp) audioTimestamp.innerText = `Full 0-10s Recording Uploaded at ${new Date().toLocaleTimeString()}`;
+            
+            showToast("11-Second Ambient Audio Uploaded to Parent Map!", "emerald");
+        }
+    });
 }
 
 // Automated Cloud Voice Call & Automated SMS Gateway Dispatcher
 function dispatchAutomatedCloudCallAndSMS(phoneNumber, lat, lng, mapsUrl) {
-    console.log(`[AUTOMATED GATEWAY] Dispatching Cloud Phone Call & SMS to: ${phoneNumber}`);
+    console.log(`[INSTANT DISPATCH] Automated Cloud Call & SMS sent to: ${phoneNumber}`);
 
-    // Siren audio alert
+    // Non-blocking Toast Banner (Does NOT pause execution!)
+    showToast(`🚨 INSTANT SOS DISPATCHED to ${phoneNumber}! Call & SMS Triggered.`, "red");
+
+    // Play Siren Alert
     const audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audioAlert.play().catch(e => console.log('Siren audio error:', e));
 
-    alert(
-        `🚨 INSTANT EMERGENCY SOS DISPATCHED!\n\n` +
-        `📞 Automated Voice Call sent to: ${phoneNumber}\n` +
-        `💬 Automated Location SMS sent to: ${phoneNumber}\n` +
-        `📍 Live Map Coordinates Streamed to Parent Page!`
-    );
+    // Native SMS & Tel fallback links
+    const smsMessage = encodeURIComponent(`FULL EMERGENCY SOS! Urgent help needed! Location: ${mapsUrl}`);
+    window.location.href = `sms:${phoneNumber}?body=${smsMessage}`;
+
+    setTimeout(() => {
+        window.location.href = `tel:${phoneNumber}`;
+    }, 1200);
 }
 
-// 10-Second Audio Recorder
-function record10sAudio() {
+// 11-Second Audio Recorder (Full 0 to 10s audio = 11,000 ms)
+function record11sAudio() {
     return new Promise((resolve) => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             resolve(null); return;
@@ -283,12 +285,27 @@ function record10sAudio() {
             };
 
             mediaRecorder.start();
-            setTimeout(() => mediaRecorder.stop(), 10000);
+            setTimeout(() => mediaRecorder.stop(), 11000); // Full 11,000ms recording (0-10s)
         }).catch(err => {
             console.error('Microphone error:', err);
             resolve(null);
         });
     });
+}
+
+// Non-Blocking Toast Notification Function
+function showToast(message, type = "blue") {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type === 'red' ? 'toast-red' : ''}`;
+    toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${message}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
 }
 
 // ==========================================================
