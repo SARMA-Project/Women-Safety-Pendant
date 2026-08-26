@@ -15,7 +15,7 @@
 
     <div class="app-wrapper">
 
-        <!-- Top Header with Brand and Instant View Switcher (Zero BLE Disconnect) -->
+        <!-- Top Header with Brand and View Switcher -->
         <header class="app-header">
             <div class="brand-logo">
                 <img src="assets/logo.png" class="header-logo" alt="Aura Safety">
@@ -132,14 +132,14 @@
              ============================================================ -->
         <main id="section-parent" class="view-section hidden">
 
-            <!-- SOS Alert Banner (Shows when SOS is active) -->
+            <!-- SOS Alert Banner with Big Mute Alarm Button -->
             <div id="sos-banner" class="sos-banner hidden">
                 <div class="sos-pulse-dot"></div>
                 <div class="sos-banner-text">
                     <strong>🚨 EMERGENCY SOS ACTIVE</strong>
                     <span id="sos-banner-time">Alerting Now</span>
                 </div>
-                <button id="btn-silence-alarm" class="btn-silence-alarm" title="Silence Siren Alarm">
+                <button id="btn-silence-alarm" class="btn-silence-alarm" onclick="silenceAlarm()" title="Silence Siren Alarm">
                     <i class="fa-solid fa-volume-xmark"></i> MUTE ALARM
                 </button>
             </div>
@@ -246,7 +246,6 @@
                 <div class="dialer-call-tag">Incoming call · Mobile</div>
             </div>
 
-            <!-- Quick Action Pills -->
             <div class="dialer-incoming-actions">
                 <div class="incoming-action-item">
                     <div class="action-circle-icon"><i class="fa-solid fa-message"></i></div>
@@ -262,7 +261,6 @@
                 </div>
             </div>
 
-            <!-- Accept & Decline Touch Controls -->
             <div class="dialer-touch-bottom">
                 <div class="dialer-btn-group">
                     <button id="btn-decline-call" class="dialer-circle-btn btn-google-decline" aria-label="Decline">
@@ -280,7 +278,7 @@
             </div>
         </div>
 
-        <!-- 2. IN-CALL SCREEN (Exact Android Google Phone 3x3 Grid) -->
+        <!-- 2. IN-CALL SCREEN -->
         <div id="call-active-state" class="dialer-screen hidden">
             <div class="dialer-incall-top">
                 <div class="incall-header-avatar">D</div>
@@ -293,8 +291,6 @@
 
             <div class="google-dialer-grid-wrap">
                 <div class="google-dialer-grid">
-
-                    <!-- Row 1 -->
                     <div class="dialer-grid-item" id="btn-dialer-record">
                         <div class="dialer-grid-icon"><i class="fa-solid fa-circle-dot"></i></div>
                         <span class="dialer-grid-label">Record</span>
@@ -310,7 +306,6 @@
                         <span class="dialer-grid-label">Add call</span>
                     </div>
 
-                    <!-- Row 2 -->
                     <div class="dialer-grid-item" id="btn-toggle-mute">
                         <div class="dialer-grid-icon"><i class="fa-solid fa-microphone-slash"></i></div>
                         <span class="dialer-grid-label">Mute</span>
@@ -326,7 +321,6 @@
                         <span class="dialer-grid-label" style="font-weight:700;">Summarise</span>
                     </div>
 
-                    <!-- Row 3 -->
                     <div class="dialer-grid-item" id="btn-toggle-speaker">
                         <div class="dialer-grid-icon"><i class="fa-solid fa-volume-high"></i></div>
                         <span class="dialer-grid-label">Speaker</span>
@@ -341,14 +335,14 @@
                         <div class="dialer-grid-icon"><i class="fa-solid fa-braille"></i></div>
                         <span class="dialer-grid-label">Dial pad</span>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Ringtone Audio -->
+    <!-- RINGTONE & SIREN AUDIO ELEMENTS -->
     <audio id="ringtone-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" preload="auto"></audio>
+    <audio id="siren-audio" loop src="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" preload="auto"></audio>
 
     <script src="app.js"></script>
 </body>

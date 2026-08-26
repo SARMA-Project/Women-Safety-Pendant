@@ -21,7 +21,7 @@ let userMarker = null;
 let accuracyCircle = null;
 let lastLat = null, lastLng = null;
 
-// Emergency Siren Audio Engine (Ultra-Reliable Web Audio)
+// Emergency Siren Audio Engine
 let audioCtx = null;
 let sirenOsc = null;
 let sirenGain = null;
@@ -201,8 +201,10 @@ function showFakeCallOverlay() {
     document.getElementById('call-active-state').classList.add('hidden');
 
     const ringtone = document.getElementById('ringtone-audio');
-    ringtone.currentTime = 0;
-    ringtone.play().catch(() => {});
+    if (ringtone) {
+        ringtone.currentTime = 0;
+        ringtone.play().catch(() => {});
+    }
     updateCallClock();
 }
 
@@ -214,7 +216,9 @@ function updateCallClock() {
 }
 
 function acceptFakeCall() {
-    document.getElementById('ringtone-audio').pause();
+    const ringtone = document.getElementById('ringtone-audio');
+    if (ringtone) ringtone.pause();
+
     document.getElementById('call-incoming-state').classList.add('hidden');
     document.getElementById('call-active-state').classList.remove('hidden');
 
@@ -229,7 +233,11 @@ function acceptFakeCall() {
 }
 
 function stopFakeCall() {
-    document.getElementById('ringtone-audio').pause();
+    const ringtone = document.getElementById('ringtone-audio');
+    if (ringtone) {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+    }
     if (callTimer) clearInterval(callTimer);
     document.getElementById('fake-call-overlay').classList.add('hidden');
     document.getElementById('call-timer-display').textContent = '00:00';
@@ -342,47 +350,66 @@ function displaySOSTelemetry(data) {
     pillText.textContent = 'EMERGENCY';
 }
 
-// ─── Emergency Siren Engine (100% Bulletproof Mute) ───────────
+// ─── Emergency Siren Engine (HTML5 Audio + Web Audio Dual Mute) 
 function startEmergencySiren() {
     if (isSirenPlaying || isAlarmMuted) return;
 
     try {
-        stopAnyPlayingSiren(); // Terminate any existing audio instances first
+        stopAnyPlayingSiren();
 
+        // 1. Try HTML5 Audio element first (most reliable on Android / iOS)
+        const sirenAudio = document.getElementById('siren-audio');
+        if (sirenAudio) {
+            sirenAudio.currentTime = 0;
+            sirenAudio.volume = 1.0;
+            sirenAudio.play().catch(e => {
+                console.log('[Siren Audio Element Autoplay]: Fallback to Web Audio');
+            });
+        }
+
+        // 2. Synthesize Web Audio oscillator siren in parallel
         const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
+        if (AudioContext) {
+            audioCtx = new AudioContext();
+            sirenGain = audioCtx.createGain();
+            sirenGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+            sirenGain.connect(audioCtx.destination);
 
-        audioCtx = new AudioContext();
-        sirenGain = audioCtx.createGain();
-        sirenGain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        sirenGain.connect(audioCtx.destination);
+            sirenOsc = audioCtx.createOscillator();
+            sirenOsc.type = 'sawtooth';
+            sirenOsc.connect(sirenGain);
+            sirenOsc.start();
 
-        sirenOsc = audioCtx.createOscillator();
-        sirenOsc.type = 'sawtooth';
-        sirenOsc.connect(sirenGain);
-        sirenOsc.start();
+            let highPitch = false;
+            sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
 
-        let highPitch = false;
-        sirenOsc.frequency.setValueAtTime(800, audioCtx.currentTime);
-
-        sirenInterval = setInterval(() => {
-            if (!audioCtx || !sirenOsc || isAlarmMuted) {
-                stopAnyPlayingSiren();
-                return;
-            }
-            const targetFreq = highPitch ? 650 : 960;
-            sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
-            highPitch = !highPitch;
-        }, 400);
+            sirenInterval = setInterval(() => {
+                if (!audioCtx || !sirenOsc || isAlarmMuted) {
+                    stopAnyPlayingSiren();
+                    return;
+                }
+                const targetFreq = highPitch ? 650 : 960;
+                sirenOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
+                highPitch = !highPitch;
+            }, 400);
+        }
 
         isSirenPlaying = true;
         console.log('[Siren] Emergency Alarm started.');
     } catch (e) {
-        console.error('[Siren] Web Audio error:', e);
+        console.error('[Siren] Error starting alarm:', e);
     }
 }
 
 function stopAnyPlayingSiren() {
+    // 1. Stop HTML5 audio element
+    const sirenAudio = document.getElementById('siren-audio');
+    if (sirenAudio) {
+        sirenAudio.pause();
+        sirenAudio.currentTime = 0;
+    }
+
+    // 2. Stop Web Audio oscillators & context
     try {
         if (sirenInterval) {
             clearInterval(sirenInterval);
@@ -391,6 +418,7 @@ function stopAnyPlayingSiren() {
         if (sirenGain && audioCtx) {
             sirenGain.gain.setValueAtTime(0, audioCtx.currentTime);
             sirenGain.disconnect();
+            sirenGain = null;
         }
         if (sirenOsc) {
             sirenOsc.stop();
@@ -402,11 +430,12 @@ function stopAnyPlayingSiren() {
             audioCtx = null;
         }
     } catch (e) {
-        console.warn('[Siren] Cleanup:', e);
+        console.warn('[Siren] Stop cleanup:', e);
     }
     isSirenPlaying = false;
 }
 
+// Global silenceAlarm callable directly anywhere
 function silenceAlarm() {
     console.log('[Siren] Silencing emergency alarm NOW...');
     isAlarmMuted = true;
@@ -420,6 +449,7 @@ function silenceAlarm() {
     }
     showToast('Emergency Siren Silenced', 'blue');
 }
+window.silenceAlarm = silenceAlarm;
 
 // ─── Leaflet Map Engine ───────────────────────────────────────
 function initMap() {
