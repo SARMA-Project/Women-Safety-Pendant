@@ -1,89 +1,72 @@
 /*
- * ESP32-S3 SUPER MINI - PIN DIAGNOSTIC & BUTTON TROUBLESHOOTER
+ * ESP32-S3 Super Mini - PIN DIAGNOSTIC (TESTING GPIO 1, 2, 3, 4, 5, 6, 7)
  * 
- * This code monitors GPIO 1, 2, 3, 4, 5, 7, 8, 9, 10 simultaneously.
- * Prints current pin states to Serial Monitor every 2 seconds.
- * 
- * Troubleshooting Steps:
- * 1. Open Serial Monitor at 115200 baud.
- * 2. Take a jumper wire connected to GND.
- * 3. Touch the other end of the wire directly to physical pin headers (1, 2, 3, 4, etc.).
- * 4. See which GPIO number responds!
+ * Touch GND wire to GPIO 1, GPIO 2, GPIO 3, GPIO 4, or GPIO 5 one by one!
+ * Serial Monitor at 115200 baud will show which pin responds!
  */
 
 #include <Arduino.h>
 
-const int pins[] = {1, 2, 3, 4, 5, 7, 8, 9, 10};
-const int pinCount = sizeof(pins) / sizeof(pins[0]);
-
-#define LED_PIN 5
 #define VIBE_PIN 6
+#define LED_PIN 5
 
-unsigned long lastPrintTime = 0;
+// Test pins: GPIO 1, GPIO 2, GPIO 3, GPIO 4, GPIO 7
+const int testPins[] = {1, 2, 3, 4, 7};
+const int count = 5;
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    Serial.println("\n=======================================================");
-    Serial.println("  ESP32-S3 PIN TROUBLESHOOTER & DIAGNOSTIC INITIALIZED ");
-    Serial.println("=======================================================");
+    Serial.println("\n=================================================");
+    Serial.println("  ESP32-S3 WIRE TOUCH TEST (GPIO 1, 2, 3, 4, 7) ");
+    Serial.println("=================================================");
 
     pinMode(LED_PIN, OUTPUT);
     pinMode(VIBE_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
     digitalWrite(VIBE_PIN, LOW);
 
-    // Initial Vibration Test (Buzzes 2 times on power up)
-    for (int i = 0; i < 2; i++) {
-        digitalWrite(VIBE_PIN, HIGH);
-        digitalWrite(LED_PIN, HIGH);
-        delay(150);
-        digitalWrite(VIBE_PIN, LOW);
-        digitalWrite(LED_PIN, LOW);
-        delay(150);
+    // Initial Test Buzz (Vibrates once on boot)
+    digitalWrite(VIBE_PIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
+    delay(300);
+    digitalWrite(VIBE_PIN, LOW);
+    digitalWrite(LED_PIN, LOW);
+
+    for (int i = 0; i < count; i++) {
+        pinMode(testPins[i], INPUT_PULLUP);
+        Serial.printf("Configured GPIO %d as INPUT_PULLUP\n", testPins[i]);
     }
 
-    // Configure all candidate pins with internal pull-up
-    for (int i = 0; i < pinCount; i++) {
-        pinMode(pins[i], INPUT_PULLUP);
-    }
-
-    Serial.println("[READY] Touch any pin with a GND wire or press button to test!\n");
+    Serial.println("\n[READY] Take your GND wire and touch pins 1, 2, 3, 4, or 7!");
 }
 
 void loop() {
     yield();
 
-    // 1. Instant Detection Loop
-    for (int i = 0; i < pinCount; i++) {
-        int p = pins[i];
-        if (digitalRead(p) == LOW) {
-            Serial.printf("\n*** SUCCESS! GROUND DETECTED ON GPIO %d ***\n", p);
+    for (int i = 0; i < count; i++) {
+        int pin = testPins[i];
+        int val = digitalRead(pin);
+
+        if (val == LOW) {
+            Serial.printf("\n>>> SUCCESS! WIRE TOUCH DETECTED ON GPIO %d <<<\n", pin);
             
+            // Buzz Motor & Flash LED
             digitalWrite(VIBE_PIN, HIGH);
             digitalWrite(LED_PIN, HIGH);
-            delay(250);
+            delay(300);
             digitalWrite(VIBE_PIN, LOW);
             digitalWrite(LED_PIN, LOW);
 
-            while (digitalRead(p) == LOW) {
+            // Wait until wire is disconnected
+            while (digitalRead(pin) == LOW) {
                 yield();
                 delay(10);
             }
-            Serial.printf("[RELEASED] GPIO %d back to HIGH.\n\n", p);
+            Serial.printf("[RELEASED] GPIO %d disconnected from GND.\n\n", pin);
             delay(100);
         }
-    }
-
-    // 2. Periodic Live Status Display (Every 2 seconds)
-    if (millis() - lastPrintTime > 2000) {
-        lastPrintTime = millis();
-        Serial.print("[LIVE PINS] ");
-        for (int i = 0; i < pinCount; i++) {
-            Serial.printf("G%d:%s ", pins[i], digitalRead(pins[i]) == LOW ? "LOW(GND)" : "HIGH");
-        }
-        Serial.println();
     }
 
     delay(20);
