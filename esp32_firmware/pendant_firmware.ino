@@ -1,10 +1,29 @@
 /*
  * ===================================================================
- *  AURA ALWAYS-ON SAFETY PENDANT FIRMWARE
+ *  AURA SAFETY – ESP32-S3 ALWAYS-ON WEARABLE PENDANT FIRMWARE
  * ===================================================================
- *  Push Button    : GPIO 3
- *  Status LED     : GPIO 5 (2 sec hold ONLY)
- *  Vibration Motor: GPIO 6 (all gestures)
+ *  Project       : Aura Safety Wearable Pendant
+ *  Board         : ESP32-S3 Super Mini / Dev Module
+ *  Architecture  : Always-ON 24/7 Wearable BLE GATT Server
+ * ===================================================================
+ *  HARDWARE PIN CONNECTIONS:
+ *  - Push Button    : GPIO 3 (Connected between GPIO 3 & GND, INPUT_PULLUP)
+ *  - Status LED     : GPIO 5 (Connected via 330Ω resistor to GND)
+ *  - Vibration Motor: GPIO 6 (Controlled via 2N2222 NPN Transistor & 1kΩ Resistor)
+ *  - Buzzer         : NONE (Silent haptic feedback only)
+ * ===================================================================
+ *  ARDUINO IDE CONFIGURATION:
+ *  - Board               : "ESP32S3 Dev Module"
+ *  - USB CDC On Boot     : "Enabled"   <-- CRITICAL for Serial Monitor!
+ *  - CPU Frequency       : 240MHz (or 80MHz/160MHz for low power)
+ *  - Flash Size          : 4MB / 8MB
+ * ===================================================================
+ *  GESTURE DEFINITIONS:
+ *  - Double Click (`0x02`): 📳 1 short 200ms vibration ONLY (No LED)
+ *                          ➔ Triggers Fake "Dad Calling" incoming call UI
+ *  - Hold 2 Sec (`0x08`)  : 💡 LED ON + 📳 1.5s strong vibration
+ *                          ➔ Dispatches Instant Emergency SOS (Call + SMS + Map)
+ *  - BLE Connected        : 📳 2 quick pulses on phone connection
  * ===================================================================
  */
 
@@ -13,13 +32,16 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 
+// Hardware Pin Definitions
 #define BUTTON_PIN 3
 #define LED_PIN    5
 #define VIBE_PIN   6
 
+// Standard BLE UUIDs
 #define SERVICE_UUID        "4fa8c001-1402-4ca2-8979-45d4d9807601"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
+// Gesture Output Codes
 #define GESTURE_NONE    0x00
 #define GESTURE_DOUBLE  0x02
 #define GESTURE_HOLD_2S 0x08
@@ -28,11 +50,13 @@ BLEServer *pServer = NULL;
 BLECharacteristic *pCharacteristic = NULL;
 bool deviceConnected = false;
 
+// BLE Server Callbacks
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *pServer) {
         deviceConnected = true;
-        Serial.println("\n[BLE] Phone Connected!");
-        // 2 quick vibrations only on connect, NO LED
+        Serial.println("\n[BLE] Phone Connected successfully!");
+        
+        // 2 subtle haptic pulses on connection (No LED)
         for (int i = 0; i < 2; i++) {
             digitalWrite(VIBE_PIN, HIGH);
             delay(120);
@@ -43,15 +67,17 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
     void onDisconnect(BLEServer *pServer) {
         deviceConnected = false;
-        Serial.println("\n[BLE] Disconnected. Re-advertising...");
+        Serial.println("\n[BLE] Phone Disconnected. Re-advertising...");
         BLEDevice::startAdvertising();
     }
 };
 
+// Gesture Detection Engine
 uint8_t processButtonPresses() {
     unsigned long pressStartTime = millis();
     bool isHold = false;
 
+    // Check for 2-Second Hold
     while (digitalRead(BUTTON_PIN) == LOW) {
         yield();
         if (millis() - pressStartTime >= 2000) {
@@ -62,17 +88,21 @@ uint8_t processButtonPresses() {
     }
 
     if (isHold) {
-        Serial.println("\n[GESTURE] -> 2-SEC HOLD (EMERGENCY SOS)");
-        // 2 sec hold: LED ON + Long vibration (1.5s)
+        Serial.println("\n🚨 [GESTURE TRIGGERED] -> 2-SECOND HOLD (EMERGENCY SOS)");
+        
+        // 2-Sec Hold: LED Illuminates + Strong 1.5s Vibration
         digitalWrite(LED_PIN, HIGH);
         digitalWrite(VIBE_PIN, HIGH);
         delay(1500);
         digitalWrite(VIBE_PIN, LOW);
         digitalWrite(LED_PIN, LOW);
+        
+        // Wait until button is fully released to prevent re-triggering
         while (digitalRead(BUTTON_PIN) == LOW) delay(10);
         return GESTURE_HOLD_2S;
     }
 
+    // Multi-click detection window (400ms)
     int clickCount = 1;
     unsigned long lastReleaseTime = millis();
 
@@ -80,25 +110,26 @@ uint8_t processButtonPresses() {
         yield();
         if (digitalRead(BUTTON_PIN) == LOW) {
             clickCount++;
-            delay(40);
+            delay(40); // Debounce
             while (digitalRead(BUTTON_PIN) == LOW) delay(10);
             lastReleaseTime = millis();
         }
         delay(10);
     }
 
-    Serial.printf("\n[GESTURE] -> Clicks: %d\n", clickCount);
+    Serial.printf("\n[GESTURE] -> Clicks Detected: %d\n", clickCount);
 
     if (clickCount == 2) {
-        Serial.println("[ACTION] -> 2 Presses (FAKE DAD CALL)");
-        // 2 presses: vibration ONLY (no LED flash)
+        Serial.println("📞 [GESTURE TRIGGERED] -> DOUBLE CLICK (FAKE DAD CALL)");
+        
+        // 2 Presses: 1 Short Haptic Vibration ONLY (No LED flash)
         digitalWrite(VIBE_PIN, HIGH);
         delay(200);
         digitalWrite(VIBE_PIN, LOW);
         return GESTURE_DOUBLE;
     }
 
-    // Single click: vibration only
+    // Single click: Quick subtle pulse
     digitalWrite(VIBE_PIN, HIGH);
     delay(80);
     digitalWrite(VIBE_PIN, LOW);
@@ -108,24 +139,27 @@ uint8_t processButtonPresses() {
 void setup() {
     Serial.begin(115200);
 
+    // Allow Native USB CDC to initialize
     unsigned long startWait = millis();
     while (!Serial && (millis() - startWait < 3000)) delay(10);
 
     Serial.println("\n=======================================================");
-    Serial.println("  AURA ALWAYS-ON SAFETY PENDANT FIRMWARE               ");
+    Serial.println("  AURA SAFETY – ALWAYS-ON WEARABLE PENDANT FIRMWARE    ");
     Serial.println("=======================================================");
 
+    // Pin Configurations
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(LED_PIN, OUTPUT);
     pinMode(VIBE_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
     digitalWrite(VIBE_PIN, LOW);
 
-    // Power-on vibration only (no LED on boot)
+    // Boot Vibration Pulse (Confirms device is active on battery/power)
     digitalWrite(VIBE_PIN, HIGH);
     delay(200);
     digitalWrite(VIBE_PIN, LOW);
 
+    // Initialize BLE Server
     BLEDevice::init("Safety_Pendant_S3");
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
@@ -139,24 +173,28 @@ void setup() {
 
     pService->start();
 
+    // Start Always-ON BLE Advertising
     BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
     BLEDevice::startAdvertising();
 
-    Serial.println("[READY] Bluetooth ALWAYS ON - Advertising 'Safety_Pendant_S3'\n");
+    Serial.println("[SYSTEM READY] Bluetooth ALWAYS ON - Advertising 'Safety_Pendant_S3'");
+    Serial.println("[INPUT] Monitoring GPIO 3 for Button Gestures...\n");
 }
 
 void loop() {
     yield();
 
+    // Check for Button Press (Active LOW)
     if (digitalRead(BUTTON_PIN) == LOW) {
         uint8_t gesture = processButtonPresses();
 
+        // Transmit Gesture over BLE Notification
         if (gesture != GESTURE_NONE && pCharacteristic != NULL && deviceConnected) {
             pCharacteristic->setValue(&gesture, 1);
             pCharacteristic->notify();
-            Serial.printf("[BLE SENT] Gesture 0x%02X sent!\n", gesture);
+            Serial.printf("[BLE TRANSMIT] Gesture Code 0x%02X Dispatched to Phone!\n", gesture);
         }
     }
 
